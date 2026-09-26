@@ -61,7 +61,7 @@ svg{display:block}
 .grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr))}
 .grid.four{grid-template-rows:repeat(2,minmax(0,1fr))}
 .tile{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;
-  min-width:0;min-height:0;padding:18px 16px 20px 0;border-top:1px solid var(--hair);overflow:hidden}
+  min-width:0;min-height:0;padding:18px 16px 20px 0;border-top:1px solid var(--hair)}
 .tile:nth-child(odd){border-right:1px solid var(--hair)}
 .tile:nth-child(even){padding-left:20px;padding-right:0}
 .tile:nth-child(-n+2){border-top:0}
@@ -69,10 +69,16 @@ svg{display:block}
 .tile .status{position:relative;z-index:1;margin-top:7px;font-size:15px;line-height:1.45;color:var(--dim);max-width:100%;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .tile .status .ar{font-size:17px;line-height:1.45}
-/* the one accent on the home: the prayer app's pill on the cell whose content is playing */
-.tile.playing:before{content:"";position:absolute;left:0;right:8px;top:6px;bottom:6px;z-index:0;
+/* a status made of a name that may be cut and a reference that never is */
+.tile .status.split{display:flex;align-items:baseline;overflow:visible}
+.tile .status.split .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .status.split .rf{flex:none;margin-left:7px;white-space:nowrap}
+/* the one accent on the home: the prayer app's pill on the cell whose content is playing.
+   Both columns get the same 8px between the pill's edge and the text; the bleed past the tile
+   box is why .tile cannot clip (the names wrap, they never overflow). */
+.tile.playing:before{content:"";position:absolute;left:-8px;right:8px;top:6px;bottom:6px;z-index:0;
   background:var(--pill);border:1px solid var(--pillb);border-radius:14px}
-.tile:nth-child(even):before{left:12px;right:0}
+.tile:nth-child(even):before{left:12px;right:-8px}
 .tile.playing .status{color:var(--accent)}
 .tile.blank{pointer-events:none}
 .tile .tap{position:absolute;left:0;top:0;right:0;bottom:0;z-index:2}
@@ -205,6 +211,10 @@ svg{display:block}
 .prog .times{display:flex;justify-content:space-between;margin-top:8px;font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums}
 .transport{flex:none;display:flex;align-items:center;justify-content:center;padding:6px 0 2px}
 .transport button{display:flex;align-items:center;justify-content:center;width:64px;height:64px;color:var(--text)}
+/* ±15 s: the numeral is DOM text at 15px, never SVG text under the floor */
+.transport .skip{display:flex;align-items:center;justify-content:center}
+.transport .skip svg{width:24px;height:24px}
+.transport .skip .n15{margin-left:3px;font-size:15px;font-weight:400;line-height:1}
 .transport button:active{opacity:.5}
 .transport .play{width:88px;height:88px;margin:0 16px}
 /* the ring: fills while the block plays, drains during the silence.
@@ -477,9 +487,10 @@ var ICON = {
   pause24: '<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M10 6h3.6v20H10zM18.4 6H22v20h-3.6z" fill="currentColor"/></svg>',
   prev: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M23 7.5 11.5 16 23 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   next: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M23 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M9 7.5 20.5 16 9 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
-  /* the "15" lives inside the SVG, so no DOM text anywhere drops under 15px */
-  back15: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="20.2" text-anchor="middle" font-size="9" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text></svg>',
-  fwd15: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="20.2" text-anchor="middle" font-size="9" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text></svg>',
+  /* a plain arrow beside a real 15px numeral: a "15" drawn inside the SVG came out at 9px, which is
+     under the floor and unreadable at arm's length */
+  back15: '<span class="skip"><svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="n15 num">15</b></span>',
+  fwd15: '<span class="skip"><svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="n15 num">15</b></span>',
   chev: '<svg viewBox="0 0 11 19" width="9" height="16" aria-hidden="true"><path d="M1.5 1.5 9.5 9.5l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   minus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9M12 7.5v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
@@ -532,22 +543,38 @@ var MushafPlan = (function () {
     return out;
   }
 
-  /* Display spans: unit runs to blocks, widened so every word of the ayah is shown exactly once
-     even where the recording repeats a phrase or a word has no segment (candidate c). */
+  /* Display spans: one block per run of units. A block shows exactly the word positions its own
+     units sound — in position order, each position once, however many units carry it (a word the
+     data split in two, or a phrase the reciter repeats). Nothing outside the block is shown, so
+     consecutive blocks no longer share words, and no word is displayed before it is heard. */
   function runsToBlocks(s, a, us, cuts, nw) {
-    var blocks = [], i, j, lo, hi, run, k;
+    var blocks = [], i, j, p, run, k;
     for (i = 0; i < cuts.length - 1; i++) {
       run = us.slice(cuts[i], cuts[i + 1]);
-      lo = Infinity; hi = -Infinity;
-      for (j = 0; j < run.length; j++) { if (run[j].p < lo) lo = run[j].p; if (run[j].p > hi) hi = run[j].p; }
-      blocks.push({ s: s, a1: a, a2: a, from: run[0].start, to: run[run.length - 1].end, kind: 'words', lo: lo, hi: hi, units: run.length });
+      var seen = {}, ps = [];
+      for (j = 0; j < run.length; j++) if (!seen[run[j].p]) { seen[run[j].p] = 1; ps.push(run[j].p); }
+      ps.sort(function (x, y) { return x - y; });
+      blocks.push({ s: s, a1: a, a2: a, from: run[0].start, to: run[run.length - 1].end, kind: 'words', ps: ps, units: run.length });
     }
-    blocks[0].lo = 1; blocks[blocks.length - 1].hi = nw;
-    for (i = 0; i < blocks.length - 1; i++) if (blocks[i + 1].lo > blocks[i].hi + 1) blocks[i].hi = blocks[i + 1].lo - 1;
+    function blockOf(q) { for (var x = 0; x < blocks.length; x++) if (blocks[x].ps.indexOf(q) >= 0) return x; return -1; }
+    /* A handful of words have no segment of their own. units() gives their time to the word before
+       them, so they really are sounded inside that word's block and belong on its screen — without
+       them a word would be recited that no block ever shows. */
+    var have = {};
+    for (i = 0; i < us.length; i++) have[us[i].p] = 1;
+    for (p = 1; p <= nw; p++) {
+      if (have[p]) continue;
+      k = -1;
+      for (j = p - 1; j >= 1 && k < 0; j--) k = blockOf(j);
+      if (k < 0) k = 0;
+      var into = blocks[k].ps, at = into.length;
+      for (i = 0; i < into.length; i++) if (into[i] > p) { at = i; break; }
+      into.splice(at, 0, p);
+    }
     for (k = 0; k < blocks.length; k++) {
       var b = blocks[k];
-      b.dur = (b.to - b.from) / 1000; b.spans = [{ a: a, p1: b.lo, p2: b.hi }];
-      delete b.lo; delete b.hi;
+      b.dur = (b.to - b.from) / 1000; b.spans = [{ a: a, ps: b.ps }];
+      delete b.ps;
     }
     return blocks;
   }
@@ -681,13 +708,14 @@ function silentWav() {                      /* 0.05 s of silence: unlocks the el
 }
 var Core = {
   url: null, unlocked: false, tok: 0, rate: 1, selfPause: false, blobUrl: null, fb: 0, fbTo: 0, wantPlay: false,
+  pending: null, cuePending: false, cueFail: null, playAt: 0, advancing: 0,
   unlock: function () {
     if (Core.unlocked || Core.url) return;
     Core.unlocked = true;
     try {
       audio.src = silentWav();
       var p = audio.play();
-      if (p && p.then) p.then(function () { if (!Core.url) { Core.selfPause = true; audio.pause(); } }, noop);
+      if (p && p.then) p.then(function () { if (!Core.url && !audio.paused) { Core.selfPause = true; audio.pause(); } }, noop);
     } catch (e) {}
   },
   /* A downloaded surah is played from a blob: URL out of Cache Storage (candidate b), so playback
@@ -704,43 +732,90 @@ var Core = {
       });
     }).catch(function () { return url; });
   },
-  /* Put the head at `sec` of `url` and call cb once the seek really landed. Never assume it did. */
+  /* Put the head at `sec` of `url` and call cb once the seek really landed. Never assume it did.
+     Returns a promise that resolves when the cue lands and rejects when the load fails, and keeps
+     Core.cuePending true for the whole of it: Core.play() waits on that rather than handing the
+     browser an element that still holds the PREVIOUS file. */
   cue: function (url, sec, cb) {
-    var tok = ++Core.tok, off = null;
-    function landed() { if (tok !== Core.tok) return; if (off) off(); off = null; if (cb) cb(); }
+    var tok = ++Core.tok, off = null, done = noop, failed = noop;
+    var pr = new Promise(function (res, rej) { done = res; failed = rej; });
+    pr.catch(noop);                            /* the failure is delivered through Core.fail(), never unhandled */
+    Core.cuePending = true; Core.cueFail = failed;
+    function clear() {
+      if (off) { off(); off = null; }
+      if (tok === Core.tok) { Core.cuePending = false; Core.cueFail = null; }
+      if (Core.pending === url) Core.pending = null;
+    }
+    function landed() {
+      if (tok !== Core.tok) return;
+      clear(); done();
+      if (cb) cb();
+      if (Core.wantPlay && audio.paused) Core.start();   /* the play() that was waiting for this cue */
+    }
     function doSeek() {
       if (tok !== Core.tok) return;
       if (!audio.seeking && audio.readyState >= 1 && Math.abs(audio.currentTime - sec) < 0.05) return landed();
       off = once(audio, 'seeked', landed);
       try { audio.currentTime = sec; } catch (e) {}
     }
-    if (Core.url === url) {
+    if (Core.url === url && Core.pending !== url) {
       if (audio.readyState >= 1) doSeek();
       else { try { audio.currentTime = sec; } catch (e) {} once(audio, 'loadedmetadata', doSeek); }
-      return;
+      return pr;
     }
-    Core.url = url;
-    /* resolving the cached copy is asynchronous, so a play() issued before the src landed
-       has to be re-issued here — otherwise the element would still hold the unlock clip */
+    /* a DIFFERENT file: silence the old one now. Looking the cached copy up is asynchronous, and
+       until it lands the element still holds the previous surah — it must not be heard under the
+       new plan, and no re-cue may fire while Core.pending names this url. */
+    if (!audio.paused && !audio.ended) { Core.selfPause = true; try { audio.pause(); } catch (e) {} }
+    Core.advancing = performance.now();       /* any 'pause' the load itself fires is ours, not Siri's */
+    Core.url = url; Core.pending = url;
     Core.resolve(url).then(function (src) {
       if (tok !== Core.tok) return;
-      /* loading a new source pauses a playing element and fires 'pause': that one is ours,
-         not an interruption, so it must not be read as an external pause */
-      if (!audio.paused) Core.selfPause = true;
       audio.src = src; audio.load();
       try { audio.currentTime = sec; } catch (e) {}
       once(audio, 'loadedmetadata', doSeek);
-      if (Core.wantPlay) Core.play();
     });
+    return pr;
   },
+  /* play() never touches the element while a cue is in flight: the cue starts it when it lands. */
   play: function () {
     Core.unlocked = true; Core.wantPlay = true;
+    if (Core.cuePending) return;
+    Core.start();
+  },
+  start: function () {
+    Core.playAt = performance.now();
     try {
       var p = audio.play();
-      if (p && p.catch) p.catch(function (e) { if (e && e.name !== 'AbortError') toast('Tap play again'); Deck.render(true); });
-    } catch (e) {}
+      if (p && p.catch) p.catch(function (e) {
+        if (!e || e.name === 'AbortError') return;        /* the src changed under us: not a failure */
+        Core.fail(e.name === 'NotAllowedError' ? 'Tap play to start' : 'Could not start the audio', true);
+      });
+    } catch (e) { Core.fail('Could not start the audio', true); }
   },
-  pause: function () { Core.selfPause = true; Core.wantPlay = false; try { audio.pause(); } catch (e) {} },
+  /* The load or the play failed. Leave the cue behind (nothing else ever will), hand the controller
+     a message, and forget the src unless it is still good, so the next tap reloads it. */
+  fail: function (msg, keepSrc) {
+    var f = Core.cueFail;
+    Core.wantPlay = false; Core.cuePending = false; Core.cueFail = null; Core.pending = null;
+    if (!keepSrc) Core.url = null;
+    Core.disarm();
+    if (f) { try { f(new Error(msg)); } catch (e) {} }
+    if (Active && Active.failed) Active.failed(msg);
+    if (window.Deck) Deck.render(true);
+  },
+  /* True when the element is not running although we asked it to — an external pause whose 'pause'
+     event never reached us. Blind for 400 ms after start(), because audio.play() is asynchronous
+     and audio.paused stays true until it resolves. */
+  stalled: function (now) {
+    return Core.wantPlay && !Core.cuePending && audio.paused && !audio.ended && (now - Core.playAt) > 400;
+  },
+  /* selfPause is only ever armed immediately before a pause() that will really fire 'pause'. */
+  pause: function () {
+    Core.wantPlay = false;
+    if (!audio.paused && !audio.ended) Core.selfPause = true;
+    try { audio.pause(); } catch (e) {}
+  },
   setRate: function (r) {
     Core.rate = r;
     try { audio.playbackRate = r; audio.defaultPlaybackRate = r; } catch (e) {}
@@ -759,17 +834,31 @@ on(document, 'pointerup', function () { Core.unlock(); }, true);
 on(document, 'touchend', function () { Core.unlock(); }, true);
 on(document, 'click', function () { Core.unlock(); }, true);
 on(audio, 'loadedmetadata', function () { Core.setRate(Core.rate); });
-on(audio, 'playing', function () { Core.setRate(Core.rate); Deck.render(true); });
+/* the element is running: whatever the latch was waiting to swallow can never arrive now */
+on(audio, 'play', function () { Core.selfPause = false; });
+on(audio, 'playing', function () { Core.selfPause = false; Core.setRate(Core.rate); Deck.render(true); });
 /* An external pause (Siri, a call, the headphones coming out) must not be read as a finished block. */
 on(audio, 'pause', function () {
   if (Core.selfPause) { Core.selfPause = false; Deck.render(true); return; }
+  /* At the natural end of a file the browser queues timeupdate, then pause, then ended. By the time
+     this 'pause' is delivered the next surah may already have been cued and started, so a pause at
+     the very end of a file — or one arriving just after an advance — is never an interruption. */
+  var d = audio.duration;
+  if (audio.ended || (isFinite(d) && d > 0 && audio.currentTime >= d - 0.05)) { Deck.render(true); return; }
+  if (performance.now() - Core.advancing < 400) { Deck.render(true); return; }
   if (Active && Active.external) Active.external();
   Deck.render(true);
 });
-on(audio, 'error', function () { if (Core.url && audio.error && audio.error.code !== 1) toast('Could not load the audio'); });
+/* A load that failed fires neither loadedmetadata nor seeked, so nothing else would ever take the
+   controller out of 'cue': Core.fail() does it, with a message, and leaves play() able to retry. */
+on(audio, 'error', function () {
+  if (!Core.url) return;
+  if (audio.error && audio.error.code === 1) return;        /* aborted by our own src change */
+  Core.fail('Could not load the audio — tap play to retry');
+});
 
 var Active = null;                          /* Listen or Memo */
-function tick() { if (Active) Active.tick(audio.currentTime, performance.now()); }
+function tick() { if (Active) Active.tick(audio.currentTime, performance.now()); MediaSess.publish(false); }
 setInterval(tick, 40);
 on(audio, 'timeupdate', tick);
 on(audio, 'ended', function () { if (Active && Active.ended) Active.ended(); });
@@ -778,13 +867,26 @@ on(document, 'visibilitychange', function () { if (!document.hidden) { if (Activ
 
 /* ---------------- Media Session ---------------- */
 var MediaSess = {
+  art: null, lastPos: 0,
+  /* the lock screen wants absolute URLs; build them from the page's own address */
+  artwork: function () {
+    if (!MediaSess.art) {
+      var base = String(location.href).replace(/[?#].*$/, '').replace(/[^\/]*$/, '');
+      MediaSess.art = [
+        { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' }
+      ];
+    }
+    return MediaSess.art;
+  },
   set: function (title, artist, album) {
     if (!('mediaSession' in navigator)) return;
-    try { navigator.mediaSession.metadata = new MediaMetadata({ title: title, artist: artist || 'Mushaf', album: album || 'Mushaf' }); } catch (e) {}
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: title, artist: artist || 'Mushaf', album: album || 'Mushaf', artwork: MediaSess.artwork() }); } catch (e) {}
   },
   state: function (playing) {
     if (!('mediaSession' in navigator)) return;
     try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'; } catch (e) {}
+    MediaSess.publish(true);                 /* play, pause, seek and every range change land here */
   },
   init: function () {
     if (!('mediaSession' in navigator)) return;
@@ -801,6 +903,23 @@ var MediaSess = {
   position: function (dur, pos, rate) {
     if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
     try { if (isFinite(dur) && dur > 0) navigator.mediaSession.setPositionState({ duration: dur, position: clamp(pos, 0, dur), playbackRate: rate || 1 }); } catch (e) {}
+  },
+  /* Published from the engine tick, once a second, and forced on every play/pause/seek/range change,
+     so the lock screen stays right whether or not the full player happens to be open. */
+  publish: function (force) {
+    if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+    var now = performance.now();
+    if (!force && now - MediaSess.lastPos < 1000) return;
+    var d = 0, p = 0, t = audio.currentTime;
+    if (Active === Listen && Listen.desc) {
+      if (Listen.desc.kind === 'quran') { d = Listen.to - Listen.from; p = t - Listen.from; }
+      else { d = isFinite(audio.duration) ? audio.duration : (Listen.desc.duration || 0); p = t; }
+    } else if (Active === Memo && Memo.block) {
+      d = (Memo.block.to - Memo.block.from) / 1000; p = t - Memo.block.from / 1000;
+    } else return;
+    if (!(isFinite(d) && d > 0)) return;
+    MediaSess.lastPos = now;
+    MediaSess.position(d, p, Core.rate || 1);
   }
 };
 
@@ -808,11 +927,11 @@ var MediaSess = {
    Listen: continuous playback — Quran ranges or a plain file.
    ========================================================================= */
 var Listen = {
-  desc: null, ranges: null, ri: 0, T: null, W: null, from: 0, to: 0, state: 'idle', lastSave: 0, lastRecent: 0,
+  desc: null, ranges: null, ri: 0, T: null, W: null, from: 0, to: 0, state: 'idle', lastSave: 0, lastRecent: 0, err: null,
   start: function (desc, opts) {
     opts = opts || {};
     if (Active === Memo) Memo.stop();
-    Active = Listen; Listen.desc = desc; Listen.state = 'cue';
+    Active = Listen; Listen.desc = desc; Listen.state = 'cue'; Listen.err = null;
     S.now = { ctrl: 'listen', desc: desc }; save('now');
     if (desc.kind === 'quran') {
       Listen.ranges = desc.ranges;
@@ -835,7 +954,8 @@ var Listen = {
     Listen.from = Listen.T.v[r.a1 - 1][0] / 1000; Listen.to = Listen.T.v[r.a2 - 1][1] / 1000;
     var at = (sec != null && sec > Listen.from + 1 && sec < Listen.to - 2) ? sec : Listen.from;
     if (S.now && S.now.ctrl === 'listen') { S.now.ri = i; save('now'); }
-    Listen.state = 'cue';
+    Listen.state = 'cue'; Listen.err = null;
+    Core.advancing = performance.now();      /* the old file's queued 'pause' is about to arrive */
     Core.setRate(Listen.rate());
     Core.cue(Listen.T.url, at, function () { Core.setRate(Listen.rate()); if (Listen.state === 'cue') { Listen.state = autoplay === false ? 'pause' : 'play'; if (autoplay !== false) Core.arm(Listen.to); } Deck.render(true); });
     if (autoplay !== false) Core.play();
@@ -845,7 +965,9 @@ var Listen = {
   key: function () { var d = Listen.desc; if (!d) return null; return d.kind === 'quran' ? (d.remember ? 'q:' + Listen.ranges[Listen.ri].s : null) : d.key; },
   tick: function (t, now) {
     if (Listen.state !== 'play') return;
-    if (audio.paused && !audio.ended) return;          /* an external pause: handled by external() */
+    /* an external pause normally arrives as a 'pause' event; if that one was lost, the element
+       sitting still inside the range is the only evidence left */
+    if (audio.paused && !audio.ended) { if (Core.stalled(now)) Listen.external(); return; }
     if (Listen.desc.kind === 'quran') {
       if (t >= Listen.to - 0.02 || audio.ended) { Listen.nextRange(); return; }
       if (now - Listen.lastRecent > 1500) {
@@ -861,6 +983,7 @@ var Listen = {
     }
   },
   nextRange: function () {
+    Core.advancing = performance.now();      /* latched across the advance: see the 'pause' handler */
     var k = Listen.key(); if (k) { delete S.resume[k]; save('resume'); }
     if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, true); else Listen.finish();
   },
@@ -874,16 +997,33 @@ var Listen = {
     if (Listen.state !== 'play' && Listen.state !== 'cue') return;
     if (audio.ended) return;
     if (Listen.desc && Listen.desc.kind === 'quran' && audio.currentTime >= Listen.to - 0.02) return;
-    Listen.state = 'pause'; Core.disarm(); MediaSess.state(false);
+    Listen.state = 'pause'; Core.wantPlay = false; Core.disarm(); MediaSess.state(false);
     var k = Listen.key(); if (k) { S.resume[k] = audio.currentTime; save('resume'); }
+    Deck.render(true);
+  },
+  /* The load or the play failed: out of 'cue', into a plain paused state carrying the message. */
+  failed: function (msg) {
+    if (Listen.state === 'idle' || Listen.state === 'done') return;
+    Listen.err = msg; Listen.state = 'pause'; Core.disarm(); MediaSess.state(false);
+  },
+  retry: function () {                                 /* a tap on play after a failure: load it again */
+    Listen.err = null;
+    if (Listen.desc.kind === 'quran') Listen.playRange(Listen.ri, null, true);
+    else {
+      Listen.state = 'cue';
+      Core.cue(Listen.desc.url, S.resume[Listen.desc.key] || 0, function () { if (Listen.state === 'cue') Listen.state = 'play'; Deck.render(true); });
+      Core.play(); Core.arm(0);
+    }
+    MediaSess.state(true);
   },
   toggle: function (want) {
     var playing = Listen.state === 'play' || Listen.state === 'cue';
     if (want === undefined) want = !playing;
     if (want) {
+      if (Listen.err) { Listen.retry(); Deck.render(true); return; }
       if (Listen.state === 'done') {
         if (Listen.desc.kind === 'quran') Listen.playRange(0, null, true);
-        else { Core.cue(Listen.desc.url, 0, noop); Core.play(); Listen.state = 'play'; Core.arm(0); }
+        else { Listen.state = 'cue'; Core.cue(Listen.desc.url, 0, function () { if (Listen.state === 'cue') Listen.state = 'play'; Deck.render(true); }); Core.play(); Core.arm(0); }
       } else { Listen.state = 'play'; Core.play(); Core.arm(Listen.desc.kind === 'quran' ? Listen.to : 0); }
       MediaSess.state(true);
     } else {
@@ -892,8 +1032,8 @@ var Listen = {
     }
     Deck.render(true);
   },
-  stop: function () { Core.pause(); Core.disarm(); Listen.state = 'idle'; },
-  wake: function () { if (Listen.state === 'play' && audio.paused && !audio.ended) Listen.external(); },
+  stop: function () { Core.pause(); Core.disarm(); Listen.state = 'idle'; Listen.err = null; },
+  wake: function () { if (Listen.state === 'play' && !Core.cuePending && audio.paused && !audio.ended) Listen.external(); },
   rate: function () { var d = Listen.desc; return d && d.kind === 'file' && d.speedSet === 'l' ? S.listen.l : S.listen.q; },
   speeds: function () { var d = Listen.desc; return d && d.kind === 'file' && d.speedSet === 'l' ? SPEEDS_L : SPEEDS_Q; },
   setSpeed: function (v) {
@@ -925,20 +1065,21 @@ var Listen = {
   seekAyah: function (a) {
     var wasPlaying = Listen.state !== 'pause' && Listen.state !== 'done';
     Listen.state = 'cue';
-    Core.cue(Listen.T.url, Listen.T.v[a - 1][0] / 1000, function () { Listen.state = wasPlaying ? 'play' : 'pause'; if (wasPlaying) Core.arm(Listen.to); Deck.render(true); });
+    Core.cue(Listen.T.url, Listen.T.v[a - 1][0] / 1000, function () { Listen.state = wasPlaying ? 'play' : 'pause'; if (wasPlaying) Core.arm(Listen.to); MediaSess.publish(true); Deck.render(true); });
     if (wasPlaying) Core.play();
   },
   skip: function (d) {
     var dur = audio.duration;
     try { audio.currentTime = clamp(audio.currentTime + d, 0, isFinite(dur) ? Math.max(0, dur - 0.5) : 1e9); } catch (e) {}
     if (Listen.state === 'done') Listen.state = 'pause';
-    Deck.render(true);
+    MediaSess.publish(true); Deck.render(true);
   },
   seekFrac: function (f) {
     f = clamp(f, 0, 1);
     if (Listen.desc.kind === 'quran') { var sec = Listen.from + f * (Listen.to - Listen.from); try { audio.currentTime = Math.min(sec, Listen.to - 0.3); } catch (e) {} }
     else if (isFinite(audio.duration)) { try { audio.currentTime = f * audio.duration; } catch (e) {} }
     if (Listen.state === 'done') Listen.state = 'pause';
+    MediaSess.publish(true);
   },
   info: function () {
     var d = Listen.desc, t = audio.currentTime;
@@ -958,9 +1099,12 @@ var Listen = {
       var dur = isFinite(audio.duration) ? audio.duration : (d.duration || 0);
       o.arTitle = d.arTitle || '';
       o.frac = dur ? clamp(t / dur, 0, 1) : 0; o.t0 = t; o.t1 = dur;
-      o.info = d.info || ''; o.miniSub = d.sub || '';
+      /* the collection's own title is the sub-line and nowhere else: this line is the clock */
+      o.info = d.info || (dur ? fmtTime(t) + ' / ' + fmtTime(dur) : fmtTime(t));
+      o.miniSub = d.sub || '';
     }
     if (Listen.state === 'done') o.info = 'Finished';
+    if (Listen.err) { o.info = Listen.err; o.playing = false; }
     return o;
   }
 };
@@ -970,7 +1114,7 @@ var Listen = {
    ========================================================================= */
 var Memo = {
   plan: null, planKey: '', bi: 0, rep: 0, state: 'idle', block: null, T: null, W: null,
-  wallStart: 0, played: 0, waitEnd: 0, waitLen: 0, pausedRemain: 0, pausedFrom: null, lastFrac: 0, recueing: false,
+  wallStart: 0, played: 0, waitEnd: 0, waitLen: 0, pausedRemain: 0, pausedFrom: null, lastFrac: 0, recueing: false, err: null,
   /* The tile is a hotkey: an existing session is resumed, never restarted. */
   open: function () {
     if (Active === Memo && Memo.state !== 'idle' && Memo.state !== 'done' && Memo.plan) {
@@ -1006,15 +1150,21 @@ var Memo = {
   },
   begin: function (autoplay) {
     var b = Memo.plan[Memo.bi]; Memo.block = b;
-    Memo.state = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Memo.recueing = false;
+    Memo.state = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Memo.recueing = false; Memo.err = null;
     Core.disarm();
-    if (S.pos.s !== b.s || S.pos.a !== b.a1) { S.pos = { s: b.s, a: b.a1 }; save('pos'); if (window.Home) Home.refresh(); }
+    Core.advancing = performance.now();
+    /* the position only moves on a genuine advance: an ayah he chose inside a merged block stays
+       his position, or the Revise ranges would jump to the block's first ayah behind his back */
+    if (S.pos.s !== b.s || S.pos.a < b.a1 || S.pos.a > b.a2) { S.pos = { s: b.s, a: b.a1 }; save('pos'); if (window.Home) Home.refresh(); }
     Core.setRate(S.memo.speed);          /* before the load: a fresh file starts at defaultPlaybackRate */
     Core.cue(Memo.T.url, b.from / 1000, function () { Core.setRate(S.memo.speed); });
     if (autoplay) { Core.play(); MediaSess.state(true); } else { Memo.state = 'paused'; Memo.pausedFrom = 'cue'; MediaSess.state(false); }
     Deck.render(true);
   },
-  /* the longest the audio of this block can really have taken, in wall ms */
+  /* the longest the audio of this block can really have taken, in wall ms — a bound for the wake()
+     path only, where the wall clock ran on while iOS had the timers frozen. A block that ended
+     while the app was awake is measured, never capped: the cap uses the speed in force now, and a
+     change of speed mid-block would otherwise cut the recite silence short. */
   cap: function () { var b = Memo.block; return b ? (b.dur / S.memo.speed) * 1000 + 500 : 1e9; },
   startWait: function (now) {
     Memo.waitLen = Math.max(400, S.memo.pause * Memo.played);
@@ -1028,7 +1178,9 @@ var Memo = {
     if (Memo.state === 'cue') {
       if (audio.paused) return;
       if (t >= from - 0.05 && t < to) { Memo.state = 'play'; Memo.wallStart = now; Core.arm(to); Deck.render(true); }
-      else if ((t < from - 0.6 || t >= to) && !Memo.recueing && audio.readyState >= 1) {
+      /* never while the cue for this url is still resolving: the head is still in the old file,
+         and re-cueing the same url on top of a pending resolve is the file-switch loop */
+      else if ((t < from - 0.6 || t >= to) && !Memo.recueing && !Core.cuePending && Core.url === Memo.T.url && audio.readyState >= 1) {
         Memo.recueing = true; Core.cue(Memo.T.url, from, function () { Memo.recueing = false; });
       }
       return;
@@ -1036,12 +1188,12 @@ var Memo = {
     if (Memo.state === 'play') {
       if (t >= to - 0.02 || audio.ended) {
         Core.pause();
-        Memo.played = Math.min(Memo.played + (now - Memo.wallStart), Memo.cap());
+        Memo.played += (now - Memo.wallStart);        /* measured wall time, exactly as it ran */
         Memo.startWait(now);
         Deck.render(true);
         return;
       }
-      if (audio.paused) Memo.external();      /* a pause event we somehow missed */
+      if (audio.paused) { if (Core.stalled(now)) Memo.external(); return; }   /* a pause event we somehow missed */
       return;
     }
     if (Memo.state === 'wait' && now >= Memo.waitEnd) Memo.advance();
@@ -1052,12 +1204,18 @@ var Memo = {
     if (audio.ended) return;
     if (Memo.state !== 'play' && Memo.state !== 'cue') return;
     if (audio.currentTime >= b.to / 1000 - 0.02) return;     /* that was the block ending, not an interruption */
-    if (Memo.state === 'play') Memo.played = Math.min(Memo.played + (performance.now() - Memo.wallStart), Memo.cap());
+    if (Memo.state === 'play') Memo.played += (performance.now() - Memo.wallStart);
     Memo.pausedFrom = Memo.state === 'play' ? 'play' : 'cue';
-    Memo.state = 'paused'; Core.disarm(); MediaSess.state(false);
+    Memo.state = 'paused'; Core.wantPlay = false; Core.disarm(); MediaSess.state(false);
     Deck.render(true);
   },
+  /* The load or the play failed: out of 'cue', paused with the message, retried by a tap on play. */
+  failed: function (msg) {
+    if (Memo.state === 'idle') return;
+    Memo.err = msg; Memo.state = 'paused'; Memo.pausedFrom = 'cue'; Core.disarm(); MediaSess.state(false);
+  },
   advance: function () {
+    Core.advancing = performance.now();
     Memo.rep++;
     if (S.memo.repeat !== 0 && Memo.rep >= S.memo.repeat) {
       Memo.rep = 0; Memo.bi++;
@@ -1079,11 +1237,12 @@ var Memo = {
     var now = performance.now(), running = Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue';
     if (want === undefined) want = !running;
     if (!want) {
-      if (Memo.state === 'play') { Core.pause(); Memo.played = Math.min(Memo.played + (now - Memo.wallStart), Memo.cap()); Memo.pausedFrom = 'play'; Memo.state = 'paused'; }
+      if (Memo.state === 'play') { Core.pause(); Memo.played += (now - Memo.wallStart); Memo.pausedFrom = 'play'; Memo.state = 'paused'; }
       else if (Memo.state === 'wait') { Memo.pausedRemain = Memo.waitEnd - now; Memo.pausedFrom = 'wait'; Memo.state = 'paused'; }
       else if (Memo.state === 'cue') { Core.pause(); Memo.pausedFrom = 'cue'; Memo.state = 'paused'; }
       Core.disarm(); MediaSess.state(false);
     } else {
+      if (Memo.err) { Memo.err = null; Memo.begin(true); Deck.render(true); return; }   /* retry this block */
       if (Memo.state === 'paused') {
         if (Memo.pausedFrom === 'wait') { Memo.waitEnd = now + Memo.pausedRemain; Memo.state = 'wait'; }
         else { Memo.state = 'cue'; Core.play(); }
@@ -1095,7 +1254,7 @@ var Memo = {
     }
     Deck.render(true);
   },
-  stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; },
+  stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; Memo.err = null; },
   prev: function () {
     if (!Memo.plan) return;
     if (Memo.bi > 0 && (Memo.state === 'cue' || (audio.currentTime - Memo.block.from / 1000) < 1.5)) Memo.bi--;
@@ -1159,8 +1318,9 @@ var Memo = {
       o.wordAt = a >= b.a1 && a <= b.a2 ? MushafPlan.wordAt(Memo.T, Memo.W, a, t * 1000) : null;
       var repTxt = S.memo.repeat === 0 ? 'Repeat ' + (Memo.rep + 1) : 'Repeat ' + (Memo.rep + 1) + ' of ' + S.memo.repeat;
       var blk = 'Block ' + b.k + ' of ' + b.n;
-      if (Memo.state === 'wait') o.status = '<span class="state">Recite</span> · ' + Math.ceil((Memo.waitEnd - now) / 1000) + ' s · ' + blk;
+      if (Memo.state === 'wait') o.status = '<span class="state">Recite</span> · ' + Math.ceil((Memo.waitEnd - now) / 1000) + ' s · ' + blk + ' · ' + repTxt;
       else if (Memo.state === 'done') o.status = '<span class="state">Done</span> · ' + blk;
+      else if (Memo.err) o.status = '<span class="state">Paused</span> · ' + esc(Memo.err);
       else if (Memo.state === 'paused') o.status = '<span class="state">Paused</span> · ' + blk + ' · ' + repTxt;
       else o.status = '<span class="state">Listen</span> · ' + blk + ' · ' + repTxt;
       o.veil = Memo.state === 'wait';
@@ -1185,7 +1345,9 @@ var Home = {
     if (!D.meta) return '';
     var su = surah(S.pos.s), r, c, n;
     switch (id) {
-      case 'memorize': return esc(su.name) + ' <span class="ar">' + esc(su.arabic) + '</span> · ' + S.pos.s + ':' + S.pos.a;
+      /* the reference is the point of this line, so it is never what gets cut: the name ellipsises
+         and the S:A keeps its width. The Arabic name is the one on the Memorise player, not here. */
+      case 'memorize': return '<span class="nm">' + esc(su.name) + '</span><span class="rf">' + S.pos.s + ':' + S.pos.a + '</span>';
       case 'revise': n = 604 - pageOf(S.pos.s, S.pos.a) + 1; return 'From ' + refStr(S.pos) + ' · ' + n + (n === 1 ? ' page' : ' pages');
       case 'husary':
         r = S.recent.husary;
@@ -1211,7 +1373,7 @@ var Home = {
       html += '<div class="tile' + (playing === id ? ' playing' : '') + '" data-id="' + id + '">' +
         '<button class="tap" data-go="' + id + '" aria-label="' + esc(KIND[id].name) + '"></button>' +
         '<span class="name">' + esc(KIND[id].name) + '</span>' +
-        '<span class="status" data-status="' + id + '">' + Home.status(id) + '</span>' +
+        '<span class="status' + (id === 'memorize' ? ' split' : '') + '" data-status="' + id + '">' + Home.status(id) + '</span>' +
         (id === 'revise' ? '' : '<button class="chev" data-list="' + id + '" aria-label="Open ' + esc(KIND[id].name) + ' list">' + ICON.chev + '</button>') +
         '</div>';
     }
@@ -1333,12 +1495,20 @@ var Home = {
    ========================================================================= */
 function setHTML(el, html) { if (el.__v !== html) { el.__v = html; el.innerHTML = html; } }
 function setText(el, txt) { if (el.__v !== txt) { el.__v = txt; el.textContent = txt; } }
+/* A span is either a whole run p1..p2 (a whole ayah) or an explicit list of positions (a word
+   block, which shows exactly what it sounds). Either way each word is printed once. */
 function wordsHTML(block) {
   var W = D.words[String(block.s)], html = '', n = 0;
   block.spans.forEach(function (sp) {
-    var words = W[sp.a - 1], p;
-    for (p = sp.p1; p <= sp.p2; p++) { html += '<span class="w" data-a="' + sp.a + '" data-p="' + p + '">' + esc(words[p - 1]) + '</span> '; n++; }
-    if (sp.p2 >= words.length) html += '<span class="aend">﴿' + arDigits(sp.a) + '﴾</span> ';
+    var words = W[sp.a - 1], list = sp.ps, p, i, last = 0;
+    if (!list) { list = []; for (p = sp.p1; p <= sp.p2; p++) list.push(p); }
+    for (i = 0; i < list.length; i++) {
+      p = list[i];
+      if (p < 1 || p > words.length) continue;
+      html += '<span class="w" data-a="' + sp.a + '" data-p="' + p + '">' + esc(words[p - 1]) + '</span> '; n++;
+      if (p > last) last = p;
+    }
+    if (last >= words.length) html += '<span class="aend">﴿' + arDigits(sp.a) + '﴾</span> ';
   });
   return { html: html, n: n };
 }
@@ -1476,8 +1646,9 @@ var Deck = {
       var k2 = 'X' + (info.arTitle || info.title);
       if (Deck.textKey !== k2) {
         Deck.textKey = k2; Deck.lit = null;
+        /* the item, not its collection: the collection's name is the sub-line above and nowhere else */
         if (info.arTitle) { E.lvText.className = 'in'; E.lvText.textContent = info.arTitle; }
-        else { E.lvText.className = 'in none'; E.lvText.textContent = info.sub || ''; }
+        else { E.lvText.className = 'in none'; E.lvText.textContent = info.title || ''; }
       }
     }
     setText(E.lvInfo, info.info || '');
@@ -1497,7 +1668,7 @@ var Deck = {
     E.lvDl.disabled = !info.url;
     E.lvDl.classList.toggle('have', st === 'done');
     setText(E.lvDl, !info.url ? '' : st === 'done' ? 'Available offline' : (st !== 'none' && st !== null) ? 'Downloading ' + st + '%' : 'Download for offline');
-    if (Active === Listen && info.t1) MediaSess.position(info.t1, info.t0, info.speed);
+    /* the lock screen's position is published from the engine tick now, open sheet or not */
   },
   renderMemo: function (info, busy) {
     var E = Deck.el, b = info.block;
@@ -1708,8 +1879,9 @@ function showCollection(kind) {
 }
 function playCollectionItem(kind, it) {
   var c = D.content[kind];
+  /* no `info`: the collection title is the sub-line, and the info line is the clock */
   Listen.start({ kind: 'file', url: it.url, title: it.title, sub: c.title, key: 'c:' + it.id, speedSet: 'l',
-    tile: kind, recent: { id: it.id, title: it.title }, duration: it.duration || 0, info: c.title });
+    tile: kind, recent: { id: it.id, title: it.title }, duration: it.duration || 0 });
   Deck.show();
 }
 function showReciters() {

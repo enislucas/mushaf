@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mushaf</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mushaf">
+<meta name="theme-color" content="#05070C">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<style>
+:root {
+  --ink0: #05070C; --ink1: #0A0F1A;
+  --accent: #8AAEFF;
+  --hair: rgba(255,255,255,.075);
+  --card: rgba(255,255,255,.042); --cardb: rgba(255,255,255,.085);
+  --t1: rgba(255,255,255,.92); --t2: rgba(255,255,255,.55); --t3: rgba(255,255,255,.32);
+  --sheet: rgba(16,21,33,.94);
+  --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+  --strip: calc(64px + var(--sab));
+  --ease: cubic-bezier(.22,.8,.2,1);
+  --ar: "KFGQPC Uthman Taha Naskh", "Amiri", "Scheherazade New", "Noto Naskh Arabic", "Geeza Pro", serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { background: var(--ink0); height: 100%; overscroll-behavior: none; }
+body {
+  margin: 0; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%;
+  height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none;
+  background: linear-gradient(180deg, var(--ink0) 0%, var(--ink1) 100%);
+  color: var(--t1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px; line-height: 1.3; -webkit-font-smoothing: antialiased;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; touch-action: manipulation; -webkit-appearance: none; appearance: none; }
+button:focus { outline: none; }
+input { font: inherit; }
+.num, .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.ar { font-family: var(--ar); }
+[hidden] { display: none !important; }
+
+/* ---------- home ---------- */
+#home {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column;
+  padding: calc(var(--sat) + 10px) calc(16px + var(--sar)) calc(var(--sab) + 14px) calc(16px + var(--sal));
+  transition: transform .45s var(--ease), opacity .45s var(--ease), padding-bottom .35s var(--ease);
+  transform-origin: 50% 0;
+}
+body.strip #home { padding-bottom: calc(var(--strip) + 14px); }
+body.editing #home { padding-bottom: calc(var(--sab) + 196px); }
+body.pfull #home { transform: scale(.94) translateY(-4px); opacity: .45; }
+.top { display: flex; align-items: baseline; justify-content: space-between; height: 44px; flex: none; transition: opacity .3s; }
+body.pfull .top { opacity: 0; }
+.top h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .01em; color: var(--t1); }
+.top .sub { font-size: 15px; color: var(--t3); margin-left: 10px; font-weight: 400; }
+#done { color: var(--accent); font-weight: 600; font-size: 17px; padding: 6px 0 6px 16px; }
+#grid { position: relative; flex: 1; min-height: 0; touch-action: none; }
+#hint { flex: none; margin: 10px 0 0; text-align: center; font-size: 15px; color: var(--t3); height: 20px; transition: opacity .3s; }
+
+.tile { position: absolute; left: 0; top: 0; width: 100px; height: 100px; transition: transform .38s var(--ease), width .38s var(--ease), height .38s var(--ease), opacity .3s; will-change: transform; }
+.tin {
+  position: relative; width: 100%; height: 100%; border-radius: 26px; padding: 18px 18px 16px;
+  background: var(--card); border: 1px solid var(--cardb);
+  background-image: radial-gradient(120% 70% at 18% 0%, rgba(255,255,255,.055), rgba(255,255,255,0) 62%);
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; justify-content: space-between;
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .3s;
+}
+.tile.press .tin { transform: scale(.965); }
+.tname { font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; color: var(--t1); }
+.tstat { font-size: 15px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.tile.live .tstat { color: var(--accent); }
+.rm { position: absolute; top: -8px; left: -8px; width: 30px; height: 30px; border-radius: 50%; background: #1B2234; border: 1px solid rgba(255,255,255,.14); color: var(--t1); display: none; align-items: center; justify-content: center; z-index: 2; touch-action: manipulation; }
+.rm::before { content: ""; width: 12px; height: 2px; background: currentColor; border-radius: 1px; }
+.editing .rm { display: flex; }
+.ghost { position: absolute; left: 0; top: 0; border-radius: 26px; border: 1px dashed rgba(255,255,255,.14); opacity: 0; transition: opacity .3s, transform .38s var(--ease), width .38s var(--ease), height .38s var(--ease); pointer-events: none; }
+.editing .ghost { opacity: 1; }
+.tile.drag { transition: none; z-index: 5; }
+.tile.drag .tin { transform: scale(1.06); box-shadow: 0 18px 40px rgba(0,0,0,.55); border-color: rgba(255,255,255,.2); animation: none !important; }
+@keyframes wiggle { from { transform: rotate(-1.3deg); } to { transform: rotate(1.3deg); } }
+.editing .tile .tin { animation: wiggle .26s ease-in-out infinite alternate; }
+.editing .tile:nth-child(odd) .tin { animation-delay: -.13s; }
+.editing .tile.pressdrag .tin { animation: none; }
+
+/* ---------- sheets ---------- */
+#scrim { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 50; }
+#scrim.on { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--sheet); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px);
+  border-top: 1px solid rgba(255,255,255,.1); border-radius: 22px 22px 0 0;
+  transform: translate3d(0, 105%, 0); transition: transform .42s var(--ease);
+  display: flex; flex-direction: column; will-change: transform;
+  padding-left: var(--sal); padding-right: var(--sar);
+}
+.sheet.open { transform: translate3d(0, 0, 0); }
+.sheet.peek { transform: translate3d(0, calc(100% - var(--strip)), 0); }
+.sheet.content { z-index: 60; max-height: calc(100% - var(--sat) - 44px); }
+.sheet.content.tall { height: calc(100% - var(--sat) - 44px); }
+.sheet.edit { z-index: 30; background: rgba(12,17,28,.96); }
+.sheet.player { z-index: 40; height: calc(100% - var(--sat) - 12px); }
+.grab { flex: none; width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.22); margin: 8px auto 4px; }
+.sh-head { flex: none; padding: 6px 16px 10px; touch-action: none; }
+.sh-title { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+.sh-title h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.sh-title .sub { font-size: 15px; color: var(--t2); margin-top: 2px; }
+.sh-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; padding-bottom: calc(var(--sab) + 18px); }
+.chip { font-size: 15px; font-weight: 600; color: var(--accent); background: rgba(138,174,255,.12); border-radius: 999px; padding: 8px 14px; touch-action: manipulation; }
+.txtbtn { font-size: 15px; font-weight: 600; color: var(--accent); padding: 8px 0 8px 12px; touch-action: manipulation; white-space: nowrap; }
+.txtbtn.quiet { color: var(--t3); font-weight: 500; }
+.search { display: block; width: 100%; height: 40px; margin-top: 10px; border-radius: 12px; border: 0; background: rgba(255,255,255,.07); color: var(--t1); font-size: 17px; padding: 0 14px; -webkit-appearance: none; appearance: none; -webkit-user-select: text; user-select: text; }
+.search::placeholder { color: var(--t3); }
+.search:focus { outline: none; background: rgba(255,255,255,.1); }
+
+/* list rows */
+.sec { position: -webkit-sticky; position: sticky; top: 0; z-index: 1; background: var(--sheet); font-size: 15px; font-weight: 600; color: var(--t3); padding: 12px 16px 6px; text-transform: none; letter-spacing: .02em; }
+.sec span { color: var(--t2); }
+.row { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; min-height: 58px; padding: 8px 16px; width: 100%; text-align: left; border-bottom: 1px solid var(--hair); }
+.row:active { background: rgba(255,255,255,.04); }
+.row .n { font-size: 17px; color: var(--t2); font-weight: 300; }
+.row .names { display: flex; align-items: baseline; justify-content: space-between; min-width: 0; padding-right: 14px; }
+.row .lat { font-size: 17px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .arn { font-size: 21px; color: var(--t1); line-height: 1.1; margin-left: 10px; font-family: var(--ar); }
+.row .meta { font-size: 15px; color: var(--t2); text-align: right; white-space: nowrap; }
+.row .meta b { font-weight: 400; color: var(--t3); }
+.row.cont .lat { color: var(--t2); }
+.row .dl { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-left: 8px; opacity: .7; vertical-align: middle; }
+.row.item { grid-template-columns: 1fr auto; min-height: 62px; }
+.row.item .t1 { font-size: 17px; color: var(--t1); }
+.row.item .t2 { font-size: 15px; color: var(--t2); margin-top: 2px; }
+.row.item.na { opacity: .45; }
+.row.item .side { display: flex; align-items: center; }
+.row.item .side .txtbtn { padding: 8px 0 8px 14px; }
+.empty { padding: 24px 16px; color: var(--t3); font-size: 15px; text-align: center; }
+
+/* revision choices */
+.choice { display: block; width: 100%; text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--hair); }
+.choice:active { background: rgba(255,255,255,.04); }
+.choice .c1 { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; font-weight: 600; }
+.choice .c1 .rng { font-weight: 400; color: var(--accent); font-size: 15px; }
+.choice .c2 { font-size: 15px; color: var(--t2); margin-top: 3px; }
+
+/* ayah grid (position picker) */
+.agrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); grid-gap: 8px; gap: 8px; padding: 6px 16px 16px; }
+.agrid button { height: 46px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06); font-size: 17px; font-weight: 300; color: var(--t1); }
+.agrid button.cur { background: rgba(138,174,255,.18); border-color: rgba(138,174,255,.4); color: var(--accent); font-weight: 500; }
+.back { display: flex; align-items: center; font-size: 17px; color: var(--accent); padding: 4px 0; }
+.back::before { content: ""; width: 9px; height: 9px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin: 0 10px 0 2px; }
+
+/* segmented control */
+.seg { display: flex; background: rgba(255,255,255,.06); border-radius: 10px; padding: 2px; }
+.seg button { flex: 1; min-width: 0; height: 32px; border-radius: 8px; font-size: 15px; color: var(--t2); font-weight: 500; transition: background .2s, color .2s; }
+.seg button.on { background: rgba(255,255,255,.14); color: var(--t1); }
+.srow { display: grid; grid-template-columns: 78px 1fr; align-items: center; min-height: 46px; padding: 0 16px; }
+.srow .slab { font-size: 15px; color: var(--t2); }
+.switch { position: relative; width: 51px; height: 31px; border-radius: 16px; background: rgba(255,255,255,.14); transition: background .25s; justify-self: end; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: transform .25s var(--ease); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(20px); }
+
+/* edit bar */
+.edit .sh-head { padding-top: 4px; }
+.chips { display: flex; flex-wrap: wrap; padding: 4px 16px 0; }
+.chips .chip { display: inline-flex; align-items: center; margin: 0 8px 8px 0; color: var(--t1); background: rgba(255,255,255,.08); font-weight: 500; }
+.chips .chip::before { content: ""; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--accent); margin-right: 8px; position: relative; background: linear-gradient(var(--accent), var(--accent)) center/8px 1.5px no-repeat, linear-gradient(var(--accent), var(--accent)) center/1.5px 8px no-repeat; }
+.chips .chip.off { opacity: .35; }
+.editnote { padding: 0 16px 6px; font-size: 15px; color: var(--t3); }
+
+/* ---------- player ---------- */
+.player .strip { position: absolute; top: 0; left: 0; right: 0; height: var(--strip); padding: 0 8px var(--sab) 18px; display: flex; align-items: center; touch-action: none; transition: opacity .25s; }
+.player.open .strip { opacity: 0; pointer-events: none; }
+.sprog { position: absolute; top: -1px; left: 22px; right: 22px; height: 2px; background: rgba(255,255,255,.1); border-radius: 1px; overflow: hidden; }
+.sprog div { height: 100%; width: 0; background: var(--accent); }
+.stxt { flex: 1; min-width: 0; }
+.st1 { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st2 { font-size: 15px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.ibtn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--t1); border-radius: 50%; touch-action: manipulation; }
+.ibtn svg { width: 22px; height: 22px; fill: currentColor; }
+.ibtn.x { color: var(--t2); }
+.player .full { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; opacity: 0; transition: opacity .3s; }
+.player.open .full { opacity: 1; }
+.player.peek .full { pointer-events: none; }
+.ph { display: flex; align-items: flex-start; justify-content: space-between; padding: 6px 16px 8px; touch-action: none; flex: none; }
+.kicker { font-size: 15px; color: var(--t2); }
+.ptitle { display: block; text-align: left; font-size: 22px; font-weight: 600; letter-spacing: -.01em; margin-top: 2px; line-height: 1.2; }
+.ptitle.link::after { content: ""; display: inline-block; width: 8px; height: 8px; border-right: 2px solid var(--t3); border-top: 2px solid var(--t3); transform: rotate(45deg); margin: 0 0 3px 10px; }
+.mtext { font-family: var(--ar); direction: rtl; text-align: center; font-size: 32px; line-height: 1.95; padding: 6px 20px 2px; min-height: 130px; color: var(--t1); word-spacing: .12em; transition: filter .3s, opacity .3s; }
+.player.listen .mtext { font-size: 27px; line-height: 1.9; min-height: 110px; }
+.mtext .w { display: inline; transition: color .12s; }
+.mtext .w.todo { color: rgba(255,255,255,.5); }
+.mtext .w.cur { color: var(--accent); }
+.mtext .sign { color: var(--t3); font-size: .8em; margin: 0 .25em; }
+.mtext.veil { filter: blur(9px); opacity: .55; }
+.cap { text-align: center; font-size: 15px; color: var(--t2); margin-top: 10px; }
+.stat { text-align: center; font-size: 15px; color: var(--t1); margin-top: 6px; min-height: 20px; }
+.stat.recite { color: var(--accent); }
+.prog { position: relative; height: 24px; margin: 10px 24px 0; touch-action: none; }
+.prog::before { content: ""; position: absolute; top: 11px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,.1); border-radius: 1px; }
+.prog .bar { position: absolute; top: 11px; left: 0; height: 2px; width: 0; background: var(--accent); border-radius: 1px; }
+.prog .drain { position: absolute; top: 11px; left: 0; height: 2px; width: 0; background: var(--t2); border-radius: 1px; }
+.times { display: flex; justify-content: space-between; margin: -4px 24px 0; font-size: 15px; color: var(--t3); }
+.ctl { display: flex; align-items: center; justify-content: center; margin: 14px 0 12px; }
+.ctl .ibtn { width: 64px; height: 64px; color: var(--t1); }
+.ctl .ibtn svg { width: 30px; height: 30px; }
+.ctl .ibtn.step { font-size: 17px; font-weight: 500; color: var(--t1); }
+.ctl .big { width: 76px; height: 76px; border-radius: 50%; background: var(--accent); color: var(--ink0); margin: 0 28px; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+.ctl .big:active { transform: scale(.94); }
+.ctl .big svg { width: 32px; height: 32px; fill: currentColor; }
+.player .settings { padding-top: 6px; border-top: 1px solid var(--hair); margin: 6px 16px 0; }
+.player .settings .srow { padding: 0; }
+.pmsg { text-align: center; font-size: 15px; color: var(--t2); padding: 6px 20px; min-height: 22px; }
+.pmsg.err { color: #FFB4A8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, #home, .tile, .ghost, .tin, #scrim { transition: none !important; }
+  .editing .tile .tin { animation: none !important; border-style: dashed; }
+  .switch::after { transition: none; }
+}
+@media (max-height: 700px) { .mtext { font-size: 28px; min-height: 100px; } .ctl { margin: 6px 0 4px; } }
+</style>
+</head>
+<body>
+<main id="home">
+  <header class="top"><h1>Mushaf<span class="sub" id="topSub"></span></h1><button id="done" hidden>Done</button></header>
+  <div id="grid"></div>
+  <p id="hint">Hold a tile to edit</p>
+</main>
+
+<section id="editbar" class="sheet edit">
+  <div class="grab"></div>
+  <div class="sh-head">
+    <div class="sh-title"><h2>Tiles</h2><div class="seg" id="sizeSeg" style="width:170px"><button data-v="4">4</button><button data-v="6">6</button></div></div>
+  </div>
+  <div class="chips" id="inactive"></div>
+  <div class="editnote" id="editnote"></div>
+</section>
+
+<div id="scrim"></div>
+
+<section id="player" class="sheet player">
+  <div class="strip" id="strip">
+    <div class="sprog"><div id="sProg"></div></div>
+    <div class="stxt"><div class="st1" id="sT1"></div><div class="st2 tnum" id="sT2"></div></div>
+    <button class="ibtn" id="sPlay" aria-label="Play"></button>
+    <button class="ibtn x" id="sClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6.2 4.8 12 10.6l5.8-5.8 1.4 1.4L13.4 12l5.8 5.8-1.4 1.4L12 13.4l-5.8 5.8-1.4-1.4L10.6 12 4.8 6.2z"/></svg></button>
+  </div>
+  <div class="full">
+    <div class="grab"></div>
+    <div class="ph">
+      <div style="min-width:0"><div class="kicker" id="pKick"></div><button class="ptitle" id="pTitle"></button></div>
+      <button class="txtbtn quiet" id="pDl"></button>
+    </div>
+    <div class="sh-body">
+      <div class="mtext" id="pText" dir="rtl" lang="ar"></div>
+      <div class="cap tnum" id="pCap"></div>
+      <div class="stat tnum" id="pStat"></div>
+      <div class="prog" id="pProg"><div class="bar" id="pBar"></div><div class="drain" id="pDrain"></div></div>
+      <div class="times tnum"><span id="pT1"></span><span id="pT2"></span></div>
+      <div class="ctl">
+        <button class="ibtn" id="pPrev" aria-label="Previous"></button>
+        <button class="big" id="pPlay" aria-label="Play"></button>
+        <button class="ibtn" id="pNext" aria-label="Next"></button>
+      </div>
+      <div class="pmsg" id="pMsg"></div>
+      <div class="settings" id="pSet"></div>
+    </div>
+  </div>
+</section>
+
+<section id="sheet" class="sheet content">
+  <div class="grab"></div>
+  <div class="sh-head" id="shHead"></div>
+  <div class="sh-body" id="shBody"></div>
+</section>
+
+<script>
+'use strict';
+var BASE = '../../';   // integrator: './'
+
+/* =========================================================================
+   storage, helpers
+   ========================================================================= */
+var LS = 'mushaf.';
+function lsGet(k, d) { try { var v = localStorage.getItem(LS + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) {} }
+function $(s, r) { return (r || document).querySelector(s); }
+function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function fmt(sec) { sec = Math.max(0, Math.round(sec || 0)); var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s; }
+function arDigits(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'[d]; }); }
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+var SVG = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15c0 .8.9 1.3 1.6.9l12-7.5c.6-.4.6-1.4 0-1.8l-12-7.5C7.9 3.2 7 3.7 7 4.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><rect x="5.5" y="4" width="4.5" height="16" rx="1.2"/><rect x="14" y="4" width="4.5" height="16" rx="1.2"/></svg>',
+  prev: '<svg viewBox="0 0 24 24"><path d="M6 5h2.2v14H6zM18.5 5.6v12.8c0 .8-.9 1.3-1.6.9l-8.4-6.4c-.6-.4-.6-1.4 0-1.8l8.4-6.4c.7-.5 1.6 0 1.6.9z"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M15.8 5H18v14h-2.2zM5.5 5.6v12.8c0 .8.9 1.3 1.6.9l8.4-6.4c.6-.4.6-1.4 0-1.8L7.1 4.7c-.7-.5-1.6 0-1.6.9z"/></svg>'
+};
+
+var KINDS = {
+  memorize: 'Memorise', revise: 'Revise', husary: 'Quran · Husary', reciters: 'Recitations',
+  sharh: 'Sharh Usul ath-Thalatha', hadith: 'Hadith', podcasts: 'Podcasts'
+};
+var KIND_ORDER = ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith', 'podcasts'];
+var COLLECTIONS = { sharh: 1, hadith: 1, podcasts: 1 };
+var SPEEDS = { quran: [0.5, 0.75, 1, 1.25], lecture: [0.75, 1, 1.25, 1.5] };
+
+var state = {
+  layout: lsGet('layout', null) || { size: 6, tiles: ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith'] },
+  memo: Object.assign({ s: 114, a: 1, speed: 1, pause: 1, repeat: 1, mode: 'auto', source: 'murattal', hide: false }, lsGet('memo', {})),
+  pos: lsGet('pos', {}),
+  last: lsGet('last', {}),
+  speeds: Object.assign({ quran: 1, lecture: 1 }, lsGet('speeds', {})),
+  editSeen: lsGet('editSeen', false)
+};
+function saveMemo() { lsSet('memo', state.memo); }
+function savePosStore() { lsSet('pos', state.pos); }
+
+/* =========================================================================
+   data
+   ========================================================================= */
+var D = { meta: null, words: null, tim: {}, content: {} };
+function getJSON(u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + u); return r.json(); }); }
+function loadCore() {
+  return Promise.all([getJSON(BASE + 'quran/meta.json'), getJSON(BASE + 'quran/words.json'), getJSON(BASE + 'quran/husary-timings.json')])
+    .then(function (r) { D.meta = r[0]; D.words = r[1]; D.tim.murattal = r[2]; buildIndex(); });
+}
+function loadTimings(src) {
+  if (D.tim[src]) return Promise.resolve(D.tim[src]);
+  return getJSON(BASE + 'quran/husary-' + (src === 'muallim' ? 'muallim-' : '') + 'timings.json').then(function (t) { D.tim[src] = t; return t; });
+}
+function loadContent(kind) {
+  if (D.content[kind]) return Promise.resolve(D.content[kind]);
+  return getJSON(BASE + 'content/' + kind + '.json').then(function (c) { D.content[kind] = c; return c; });
+}
+
+/* Quran index: pages, juz, neighbours */
+var Q = {};
+function parseKey(k) { var p = k.split(':'); return { s: +p[0], a: +p[1], k: +p[0] * 1000 + +p[1] }; }
+function upperIdx(arr, key) { var lo = 0, hi = arr.length - 1, ans = 0; while (lo <= hi) { var mid = (lo + hi) >> 1; if (arr[mid].k <= key) { ans = mid; lo = mid + 1; } else hi = mid - 1; } return ans; }
+function buildIndex() {
+  var S = D.meta.surahs, pk = D.meta.pageStarts.map(parseKey), jk = D.meta.juzStarts.map(parseKey);
+  Q.surahs = S;
+  Q.surah = function (n) { return S[n - 1]; };
+  Q.pageOf = function (s, a) { return upperIdx(pk, s * 1000 + a) + 1; };
+  Q.juzOf = function (s, a) { return upperIdx(jk, s * 1000 + a) + 1; };
+  Q.pageStart = function (p) { return pk[p - 1]; };
+  Q.juzStart = function (j) { return jk[j - 1]; };
+  Q.next = function (s, a) { if (a < S[s - 1].ayahs) return { s: s, a: a + 1 }; if (s < 114) return { s: s + 1, a: 1 }; return null; };
+  Q.prev = function (s, a) { if (a > 1) return { s: s, a: a - 1 }; if (s > 1) return { s: s - 1, a: S[s - 2].ayahs }; return null; };
+  Q.pageEnd = function (p) { return p >= 604 ? { s: 114, a: 6 } : Q.prev(pk[p].s, pk[p].a); };
+  Q.juzEnd = function (j) { return j >= 30 ? { s: 114, a: 6 } : Q.prev(jk[j].s, jk[j].a); };
+  Q.ref = function (s, a) { return s + ':' + a; };
+}
+
+/* =========================================================================
+   block planner — pure functions, imported by the Node harness
+   ========================================================================= */
+/*__PLANNER_START__*/
+var PAUSE_MARK = /[\u06D6-\u06DC\u06DE]/;
+/* Auto: target 8–14 s. Merge whole ayat while the block is under 8 s and would stay ≤ 14 s;
+   split an ayah over 16 s (or over 18 s with ≥ 2 words) into 5–7-word blocks, cutting on a pause
+   mark or where the reciter restarts a phrase, forced at 7 words or 14 s, never past 18 s. */
+var AUTO = { shortBlock: 4000, mergeUntil: 8000, mergeCap: 14000, splitOver: 16000, hardCap: 18000, wMin: 5, wMax: 7 };
+var CUT_AUTO = { min: 5, max: 7, timeCap: 14000, hardCap: 18000, shortBlock: 4000, mergeMax: 9 };
+var CUT_WORDS = { min: 4, max: 6, timeCap: Infinity, hardCap: Infinity, shortBlock: 0, mergeMax: 7 };
+
+/* The atomic units of an ayah's audio, in time order. Husary sometimes re-recites a phrase after a
+   breath, so positions are not monotonic; each spoken word is its own unit. Positions past the last
+   word (the ayah-end sign) fold into the last word; the first/last unit are pinned to the ayah edges. */
+function segList(ayah, n) {
+  var from = ayah[0], to = ayah[1], raw = ayah[2], segs = [], i;
+  for (i = 0; i < raw.length; i++) { var p = raw[i][0]; if (p < 1 || n < 1) continue; segs.push({ p: Math.min(p, n), start: raw[i][1], end: raw[i][2] }); }
+  if (!segs.length) segs.push({ p: 1, start: from, end: to });
+  for (i = 1; i < segs.length; i++) { if (segs[i].start < segs[i - 1].end) segs[i].start = segs[i - 1].end; if (segs[i].end < segs[i].start) segs[i].end = segs[i].start; }
+  segs[0].start = Math.min(segs[0].start, from);
+  segs[segs.length - 1].end = Math.max(segs[segs.length - 1].end, to);
+  return segs;
+}
+
+/* Cut a segment sequence into blocks: returns [[i, j], …] segment index ranges. */
+function cutSegs(segs, W, cfg) {
+  var n = segs.length, cuts = [], start = 0, x;
+  for (x = 0; x < n - 1; x++) {
+    var count = x - start + 1, t = segs[x].end - segs[start].start, nextT = segs[x + 1].end - segs[start].start;
+    var natural = PAUSE_MARK.test(W[segs[x].p - 1] || '') || segs[x + 1].p <= segs[x].p;
+    var nextLong = segs[x + 1].end - segs[x + 1].start >= cfg.timeCap;   // a unit that is a block by itself
+    var cut = (count >= cfg.max && t >= cfg.shortBlock)
+      || (count >= cfg.min && natural && t >= cfg.shortBlock)
+      || (t >= cfg.timeCap && count >= 3)
+      || (nextT > cfg.hardCap && (count >= 2 || nextLong || t >= cfg.timeCap));
+    if (cut) { cuts.push([start, x]); start = x + 1; }
+  }
+  cuts.push([start, n - 1]);
+  var L = cuts.length;
+  if (L >= 2) {
+    var tail = cuts[L - 1], pb = cuts[L - 2], tc = tail[1] - tail[0] + 1, td = segs[tail[1]].end - segs[tail[0]].start;
+    if (tc < 3 || td < cfg.shortBlock) {
+      var cc = tail[1] - pb[0] + 1, cd = segs[tail[1]].end - segs[pb[0]].start;
+      if (cc <= cfg.mergeMax && cd <= cfg.hardCap) cuts.splice(L - 2, 2, [pb[0], tail[1]]);
+      else {  // rebalance the last two blocks around the most even natural boundary
+        var a = pb[0], b = tail[1], best = -1, bestScore = Infinity;
+        for (x = a + 1; x < b - 1; x++) {
+          var left = segs[x].end - segs[a].start, right = segs[b].end - segs[x + 1].start;
+          var score = Math.abs(left - right) - ((PAUSE_MARK.test(W[segs[x].p - 1] || '') || segs[x + 1].p <= segs[x].p) ? 3000 : 0);
+          if (score < bestScore) { bestScore = score; best = x; }
+        }
+        if (best >= 0) { cuts[L - 2] = [a, best]; cuts[L - 1] = [best + 1, b]; }
+      }
+    }
+  }
+  return cuts;
+}
+
+/* mode: 'ayah' | '2' | '3' | 'words' | 'auto'. Never crosses the surah.
+   block: { s, a1, a2, p1, p2, from, to, part, parts, segs:[{a,p,start,end}], words:[{t,a,p}|{sign:a}] } */
+function planSurah(sNo, mode, tim, words) {
+  var T = tim[String(sNo)], W = words[String(sNo)], n = T.v.length, blocks = [], i;
+  function dur(k) { return T.v[k][1] - T.v[k][0]; }
+  function ayahBlock(a, b) {
+    var ws = [], sg = [];
+    for (var x = a; x <= b; x++) {
+      segList(T.v[x], W[x].length).forEach(function (s) { sg.push({ a: x + 1, p: s.p, start: s.start, end: s.end }); });
+      for (var p = 0; p < W[x].length; p++) ws.push({ t: W[x][p], a: x + 1, p: p + 1 });
+      ws.push({ sign: x + 1 });
+    }
+    return { s: sNo, a1: a + 1, a2: b + 1, p1: 1, p2: W[b].length, from: T.v[a][0], to: T.v[b][1], part: 0, parts: 1, segs: sg, words: ws };
+  }
+  function splitAyah(x, cfg) {
+    var segs = segList(T.v[x], W[x].length), cuts = cutSegs(segs, W[x], cfg);
+    if (cuts.length === 1) { blocks.push(ayahBlock(x, x)); return; }
+    var prevP2 = 0;
+    cuts.forEach(function (c, k) {
+      var sg = segs.slice(c[0], c[1] + 1), p1 = Infinity, p2 = 0;
+      sg.forEach(function (s) { if (s.p < p1) p1 = s.p; if (s.p > p2) p2 = s.p; });
+      if (k === 0) p1 = 1; else if (p1 > prevP2 + 1) p1 = prevP2 + 1;   // words without a segment still get shown
+      if (k === cuts.length - 1) p2 = W[x].length;
+      prevP2 = Math.max(prevP2, p2);
+      var ws = [];
+      for (var p = p1; p <= p2; p++) ws.push({ t: W[x][p - 1], a: x + 1, p: p });
+      if (k === cuts.length - 1) ws.push({ sign: x + 1 });
+      blocks.push({ s: sNo, a1: x + 1, a2: x + 1, p1: p1, p2: p2, from: sg[0].start, to: sg[sg.length - 1].end, part: k + 1, parts: cuts.length,
+        segs: sg.map(function (s) { return { a: x + 1, p: s.p, start: s.start, end: s.end }; }), words: ws });
+    });
+  }
+
+  if (mode === 'ayah' || mode === '2' || mode === '3') {
+    var g = mode === 'ayah' ? 1 : +mode;
+    for (i = 0; i < n; i += g) blocks.push(ayahBlock(i, Math.min(n - 1, i + g - 1)));
+  } else if (mode === 'words') {
+    for (i = 0; i < n; i++) { if (W[i].length <= 7) blocks.push(ayahBlock(i, i)); else splitAyah(i, CUT_WORDS); }
+  } else {
+    i = 0;
+    while (i < n) {
+      var d = dur(i), sc = T.v[i][2].length;
+      if ((d > AUTO.splitOver && sc >= 8) || (d > AUTO.hardCap && sc >= 2)) { splitAyah(i, CUT_AUTO); i++; continue; }
+      var j = i, total = d;
+      while (j + 1 < n && total < AUTO.mergeUntil && dur(j + 1) <= AUTO.splitOver && total + dur(j + 1) <= AUTO.mergeCap) { j++; total += dur(j); }
+      if (total < AUTO.shortBlock && j + 1 < n && dur(j + 1) <= AUTO.splitOver && total + dur(j + 1) <= AUTO.hardCap) { j++; total += dur(j); }
+      blocks.push(ayahBlock(i, j)); i = j + 1;
+    }
+    var L = blocks.length;
+    if (L >= 2 && blocks[L - 1].parts === 1 && blocks[L - 2].parts === 1 &&
+        blocks[L - 1].to - blocks[L - 1].from < AUTO.shortBlock && blocks[L - 1].to - blocks[L - 2].from <= AUTO.hardCap) {
+      blocks.splice(L - 2, 2, ayahBlock(blocks[L - 2].a1 - 1, blocks[L - 1].a2 - 1));
+    }
+  }
+  blocks.forEach(function (b, k) { b.i = k; b.n = blocks.length; });
+  return blocks;
+}
+/*__PLANNER_END__*/
+
+/* =========================================================================
+   audio engine — one element for the life of the page
+   ========================================================================= */
+var SILENT = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+var audio = document.createElement('audio');
+audio.preload = 'auto';
+audio.crossOrigin = 'anonymous';
+audio.setAttribute('playsinline', '');
+audio.style.display = 'none';
+document.body.appendChild(audio);
+try { audio.preservesPitch = true; } catch (e) {}
+try { audio.webkitPreservesPitch = true; } catch (e) {}
+
+var Engine = {
+  unlocked: false, url: null,
+  unlock: function () {
+    if (this.unlocked) return; this.unlocked = true;
+    try { this.url = SILENT; audio.src = SILENT; var p = audio.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  },
+  load: function (url) {
+    if (this.url === url && !audio.error) return;
+    this.url = url; audio.src = url; audio.load();
+  },
+  /* resolves once currentTime really sits at t (metadata may still be loading) */
+  seekTo: function (t) {
+    return new Promise(function (res, rej) {
+      var done = false, iv = 0;
+      function ok() { if (done) return; done = true; cleanup(); res(); }
+      function bad() { if (done) return; done = true; cleanup(); rej(new Error('media')); }
+      function cleanup() { audio.removeEventListener('seeked', ok); audio.removeEventListener('error', bad); audio.removeEventListener('loadedmetadata', go); clearInterval(iv); }
+      function go() {
+        if (Math.abs(audio.currentTime - t) < 0.05) { ok(); return; }
+        audio.addEventListener('seeked', ok);
+        try { audio.currentTime = t; } catch (e) { bad(); }
+      }
+      audio.addEventListener('error', bad);
+      iv = setInterval(function () { if (audio.readyState >= 1 && Math.abs(audio.currentTime - t) < 0.05) ok(); if (audio.error) bad(); }, 120);
+      if (audio.readyState >= 1) go(); else audio.addEventListener('loadedmetadata', go);
+    });
+  },
+  play: function () { var p = audio.play(); return p && p.then ? p : Promise.resolve(); }
+};
+document.addEventListener('pointerup', function () { Engine.unlock(); }, true);
+document.addEventListener('touchend', function () { Engine.unlock(); }, true);
+document.addEventListener('click', function () { Engine.unlock(); }, true);
+
+/* the active session receives ticks from rAF, timeupdate, ended and visibility */
+var active = null, rafId = 0;
+function loop() { rafId = 0; if (!active) return; active.tick(audio.currentTime); rafId = requestAnimationFrame(loop); }
+function ensureLoop() { if (!rafId) rafId = requestAnimationFrame(loop); }
+audio.addEventListener('timeupdate', function () { if (active) active.tick(audio.currentTime); });
+audio.addEventListener('ended', function () { if (active && active.onEnded) active.onEnded(); });
+audio.addEventListener('error', function () { if (active && active.onError && Engine.url !== SILENT) active.onError(); });
+audio.addEventListener('waiting', function () { if (active && active.onWaiting) active.onWaiting(); });
+audio.addEventListener('playing', function () { if (active && active.onPlaying) active.onPlaying(); });
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { if (active && active.persist) active.persist(); return; }
+  if (active) { active.tick(audio.currentTime); if (active.onVisible) active.onVisible(); ensureLoop(); }
+});
+window.addEventListener('pagehide', function () { if (active && active.persist) active.persist(); });
+
+function setSession(s) {
+  if (active && active !== s) { active.stop(); }
+  active = s;
+  if (s) ensureLoop();
+}
+function mediaSession(meta, handlers) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: meta.title, artist: meta.artist, album: 'Mushaf' });
+    ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward'].forEach(function (a) {
+      try { navigator.mediaSession.setActionHandler(a, handlers[a] || null); } catch (e) {}
+    });
+  } catch (e) {}
+}
+
+/* =========================================================================
+   memorisation session
+   ========================================================================= */
+function surahName(s) { return Q.surah(s).name; }
+function MemoSession() {
+  this.kind = 'memorize'; this.plan = null; this.s = 0; this.idx = 0; this.rep = 1;
+  this.st = 'idle'; this.timer = 0; this.fallback = 0; this.wall = 0; this.stallAt = 0; this.stall = 0;
+  this.pauseEnd = 0; this.pauseLeft = 0; this.pausedFrom = ''; this.pausedAt = 0; this.wi = -1; this.tim = null;
+}
+MemoSession.prototype = {
+  block: function () { return this.plan ? this.plan[this.idx] : null; },
+  start: function (s, a, opts) {
+    var self = this, m = state.memo; opts = opts || {};
+    this.st = 'loading'; this.rep = 1; UI.player.render();
+    return loadTimings(m.source).then(function (tim) {
+      self.tim = tim; self.s = s;
+      self.plan = planSurah(s, m.mode, tim, D.words);
+      var idx = 0;
+      for (var i = 0; i < self.plan.length; i++) { var b = self.plan[i]; if (b.a1 <= a && a <= b.a2) { idx = i; break; } if (b.a1 > a) { idx = i; break; } }
+      self.idx = idx;
+      if (opts.hold) { self.st = 'paused'; self.pausedFrom = 'start'; UI.player.render(); return; }
+      return self.playBlock();
+    }).catch(function (e) { self.st = 'idle'; UI.player.msg('Could not load the recitation.', true); UI.player.render(); });
+  },
+  playBlock: function () {
+    var self = this, b = this.block(), m = state.memo;
+    clearTimeout(this.timer); clearTimeout(this.fallback);
+    if (!b) return Promise.resolve();
+    if (!(b.s === m.s && b.a1 <= m.a && m.a <= b.a2)) { m.s = b.s; m.a = b.a1; saveMemo(); UI.grid.statuses(); }
+    this.st = 'loading'; this.wi = -1; this.stall = 0; this.stallAt = 0;
+    UI.player.msg('');
+    UI.player.render();
+    Engine.load(this.tim[String(b.s)].url);
+    audio.playbackRate = m.speed;
+    var gen = this.gen = (this.gen || 0) + 1;
+    return Engine.seekTo(b.from / 1000).then(function () {
+      if (self.gen !== gen || self.st !== 'loading') return;
+      audio.playbackRate = m.speed;
+      return Engine.play().then(function () {
+        if (self.gen !== gen || self.st !== 'loading') { return; }
+        self.st = 'playing'; self.wall = Date.now(); self.armFallback(); ensureLoop(); UI.player.render(); UI.grid.statuses();
+      });
+    }).catch(function (e) {
+      if (self.gen !== gen) return;
+      self.st = 'paused'; self.pausedFrom = 'start';
+      UI.player.msg(audio.error ? 'Could not load this surah — offline? Download it while online.' : 'Playback was blocked. Tap play.', true);
+      UI.player.render();
+    });
+  },
+  armFallback: function () {
+    var self = this, b = this.block(); clearTimeout(this.fallback);
+    if (!b) return;
+    var remain = (b.to / 1000 - audio.currentTime) / (audio.playbackRate || 1) * 1000 + 60;
+    this.fallback = setTimeout(function () { if (self.st === 'playing') { self.tick(audio.currentTime); if (self.st === 'playing') self.armFallback(); } }, Math.max(60, remain));
+  },
+  tick: function (t) {
+    var b = this.block(); if (!b) return;
+    if (this.st === 'playing') {
+      this.highlight(t * 1000);
+      UI.player.progress((t - b.from / 1000) / ((b.to - b.from) / 1000), 0);
+      if (t >= b.to / 1000 - 0.02) this.endBlock();
+    } else if (this.st === 'pausing') {
+      var left = this.pauseEnd - Date.now();
+      UI.player.progress(0, clamp(left / this.silence, 0, 1));
+      UI.player.recite(left);
+      if (left <= 0) this.afterPause();
+    }
+  },
+  /* the spoken unit at ms → (ayah, position) key; words are shown once even when Husary re-recites a phrase */
+  highlight: function (ms) {
+    var b = this.block(), sg = b.segs, key = -1;
+    for (var i = 0; i < sg.length; i++) {
+      if (ms < sg[i].start) break;
+      key = sg[i].a * 1000 + sg[i].p;
+      if (ms < sg[i].end) break;
+    }
+    if (key !== this.wi) { this.wi = key; UI.player.highlight(key); }
+  },
+  endBlock: function () {
+    if (this.st !== 'playing') return;
+    audio.pause(); clearTimeout(this.fallback);
+    var took = Date.now() - this.wall - this.stall;
+    this.silence = Math.max(600, took * state.memo.pause);
+    this.st = 'pausing'; this.pauseEnd = Date.now() + this.silence;
+    var self = this; this.timer = setTimeout(function () { self.afterPause(); }, this.silence + 10);
+    UI.player.highlight(-1); UI.player.render();
+  },
+  afterPause: function () {
+    clearTimeout(this.timer);
+    if (this.st !== 'pausing') return;
+    var r = state.memo.repeat;
+    if (r === 'inf' || this.rep < r) { this.rep++; this.playBlock(); return; }
+    this.rep = 1; this.idx++;
+    if (this.idx >= this.plan.length) { this.nextSurah(); return; }
+    this.playBlock();
+  },
+  nextSurah: function () {
+    if (this.s <= 1) { this.st = 'done'; this.idx = this.plan.length - 1; UI.player.msg('That was Al-Fatihah — the whole Quran.'); UI.player.render(); return; }
+    var ns = this.s - 1; state.memo.s = ns; state.memo.a = 1; saveMemo();
+    this.start(ns, 1);
+  },
+  onEnded: function () { if (this.st === 'playing') this.endBlock(); },
+  onWaiting: function () { if (this.st === 'playing') this.stallAt = Date.now(); },
+  onPlaying: function () { if (this.stallAt) { this.stall += Date.now() - this.stallAt; this.stallAt = 0; } },
+  onError: function () { if (this.st === 'playing' || this.st === 'loading') { this.pause(); this.pausedFrom = 'start'; UI.player.msg('Could not load this surah — offline? Download it while online.', true); UI.player.render(); } },
+  onVisible: function () {
+    var b = this.block(); if (!b) return;
+    if (this.st === 'playing' && audio.currentTime >= b.to / 1000 - 0.02) this.endBlock();
+    else if (this.st === 'playing' && audio.paused) { this.pause(); }
+    else if (this.st === 'pausing' && Date.now() >= this.pauseEnd) this.afterPause();
+  },
+  isPlaying: function () { return this.st === 'playing' || this.st === 'pausing' || this.st === 'loading'; },
+  toggle: function () { if (this.isPlaying()) this.pause(); else this.resume(); },
+  pause: function () {
+    clearTimeout(this.fallback);
+    if (this.st === 'playing') { audio.pause(); this.pausedFrom = 'playing'; this.pausedAt = Date.now(); }
+    else if (this.st === 'pausing') { clearTimeout(this.timer); this.pauseLeft = Math.max(0, this.pauseEnd - Date.now()); this.pausedFrom = 'pausing'; }
+    else if (this.st === 'loading') { this.gen++; this.pausedFrom = 'start'; }
+    else return;
+    this.st = 'paused'; UI.player.render(); UI.grid.statuses();
+  },
+  resume: function () {
+    var self = this;
+    if (this.st === 'done') { return; }
+    if (this.st !== 'paused' && this.st !== 'idle') return;
+    if (this.pausedFrom === 'playing' && audio.currentTime < this.block().to / 1000 - 0.05) {
+      this.wall += Date.now() - this.pausedAt; this.st = 'playing'; audio.playbackRate = state.memo.speed;
+      Engine.play().then(function () { self.armFallback(); ensureLoop(); UI.player.render(); UI.grid.statuses(); })
+        .catch(function () { self.st = 'paused'; self.pausedFrom = 'start'; UI.player.msg('Playback was blocked. Tap play.', true); UI.player.render(); });
+    } else if (this.pausedFrom === 'pausing') {
+      this.st = 'pausing'; this.pauseEnd = Date.now() + this.pauseLeft;
+      this.timer = setTimeout(function () { self.afterPause(); }, this.pauseLeft + 10); ensureLoop(); UI.player.render();
+    } else { this.playBlock(); }
+  },
+  next: function () { if (!this.plan) return; this.rep = 1; if (this.idx + 1 >= this.plan.length) { this.nextSurah(); return; } this.idx++; this.playBlock(); },
+  prev: function () { if (!this.plan) return; this.rep = 1; this.idx = Math.max(0, this.idx - 1); this.playBlock(); },
+  /* settings or position changed: re-plan around the current ayah, keep playing state */
+  replan: function () {
+    var was = this.isPlaying(), m = state.memo, self = this;
+    clearTimeout(this.timer); clearTimeout(this.fallback); this.gen = (this.gen || 0) + 1;
+    if (this.st === 'playing') audio.pause();
+    this.st = 'loading'; this.rep = 1;
+    return this.start(m.s, m.a, { hold: !was }).then(function () { UI.player.render(); });
+  },
+  stop: function () { clearTimeout(this.timer); clearTimeout(this.fallback); this.gen = (this.gen || 0) + 1; if (!audio.paused) audio.pause(); this.st = 'idle'; },
+  persist: function () {}
+};
+
+/* =========================================================================
+   listening session (Husary continuous / revision range / plain tracks)
+   opts: { kind:'quran', s, a, endS, endA, savePos, label, sub, tile }
+         { kind:'track', url, title, sub, posKey, tile, speedSet }
+   ========================================================================= */
+function ListenSession(opts) {
+  this.o = opts; this.kind = opts.tile; this.st = 'idle'; this.s = opts.s || 0; this.ai = -1; this.wi = -1;
+  this.lastSave = 0; this.finished = false; this.gen = 0;
+}
+ListenSession.prototype = {
+  speedSet: function () { return this.o.kind === 'quran' || this.o.speedSet === 'quran' ? 'quran' : 'lecture'; },
+  rate: function () { return state.speeds[this.speedSet()] || 1; },
+  V: function () { return D.tim.murattal[String(this.s)].v; },
+  start: function () {
+    var self = this, o = this.o, url, t0;
+    this.st = 'loading'; this.finished = false; UI.player.render(); UI.player.msg('');
+    if (o.kind === 'quran') {
+      url = D.tim.murattal[String(this.s)].url;
+      var V = this.V();
+      t0 = V[(o.a || 1) - 1][0] / 1000;
+      if (o.resume != null) t0 = o.resume;
+      else if (o.savePos && o.a === 1 && state.pos['q:' + this.s] > 3 && state.pos['q:' + this.s] < V[V.length - 1][1] / 1000 - 5) { t0 = state.pos['q:' + this.s]; }
+      o.resume = null; o.a = 1;
+    } else {
+      url = o.url; t0 = o.posKey && state.pos[o.posKey] > 3 ? state.pos[o.posKey] : 0;
+    }
+    var gen = ++this.gen;
+    Engine.load(url);
+    audio.playbackRate = this.rate();
+    return Engine.seekTo(t0).then(function () {
+      if (self.gen !== gen) return;
+      audio.playbackRate = self.rate();
+      return Engine.play().then(function () { if (self.gen !== gen) return; self.st = 'playing'; ensureLoop(); self.ai = -1; self.tick(audio.currentTime); UI.player.render(); UI.grid.statuses(); self.media(); });
+    }).catch(function () {
+      if (self.gen !== gen) return;
+      self.st = 'paused'; UI.player.msg(audio.error ? 'Could not load this ' + (o.kind === 'quran' ? 'surah' : 'file') + ' — offline? Download it while online.' : 'Playback was blocked. Tap play.', true); UI.player.render();
+    });
+  },
+  media: function () {
+    var self = this, o = this.o, title = o.kind === 'quran' ? surahName(this.s) : o.title;
+    mediaSession({ title: title, artist: o.sub || o.label || 'Husary' }, {
+      play: function () { self.resume(); }, pause: function () { self.pause(); },
+      previoustrack: function () { self.prev(); }, nexttrack: function () { self.next(); },
+      seekbackward: function () { self.prev(); }, seekforward: function () { self.next(); }
+    });
+  },
+  ayahIndexAt: function (ms) {
+    var V = this.V(), lo = 0, hi = V.length - 1, ans = 0;
+    while (lo <= hi) { var mid = (lo + hi) >> 1; if (V[mid][0] <= ms) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
+    return ans;
+  },
+  tick: function (t) {
+    if (this.st !== 'playing' && this.st !== 'paused') return;
+    var o = this.o, ms = t * 1000;
+    if (o.kind === 'quran') {
+      var V = this.V(), ai = this.ayahIndexAt(ms);
+      if (ai !== this.ai) { this.ai = ai; this.wi = -1; UI.player.ayah(this.s, ai + 1); if (this.st === 'playing') { if (o.savePos) { state.last.husary = { s: this.s, a: ai + 1 }; lsSet('last', state.last); } UI.grid.statuses(); } }
+      var segs = V[ai][2], nW = D.words[String(this.s)][ai].length, cur = -1;
+      for (var i = 0; i < segs.length; i++) { if (ms >= segs[i][1] && ms < segs[i][2]) { cur = (ai + 1) * 1000 + Math.min(segs[i][0], nW); break; } }
+      if (cur !== this.wi) { this.wi = cur; UI.player.highlight(cur); }
+      var total = D.tim.murattal[String(this.s)].d / 1000;
+      UI.player.progress(t / total, 0); UI.player.times(t, total);
+      if (o.endS === this.s && this.st === 'playing') { var endTo = V[o.endA - 1][1] / 1000; if (t >= endTo - 0.02) { this.finish(); return; } }
+    } else {
+      var dur = audio.duration || o.duration || 0;
+      UI.player.progress(dur ? t / dur : 0, 0); UI.player.times(t, dur);
+    }
+    if (this.st === 'playing' && Date.now() - this.lastSave > 2500) { this.lastSave = Date.now(); this.persist(); }
+  },
+  persist: function () {
+    var o = this.o, t = audio.currentTime;
+    if (o.kind === 'quran') { if (o.savePos) { state.pos['q:' + this.s] = t; savePosStore(); } }
+    else if (o.posKey) { state.pos[o.posKey] = t; savePosStore(); }
+  },
+  onEnded: function () {
+    if (this.st !== 'playing') return;
+    var o = this.o;
+    if (o.kind === 'quran') {
+      if (o.savePos) { state.pos['q:' + this.s] = 0; savePosStore(); }
+      if (o.endS != null ? this.s < o.endS : this.s < 114) { this.s++; o.a = 1; o.resume = 0; this.start(); return; }
+    } else if (o.posKey) { state.pos[o.posKey] = 0; savePosStore(); }
+    this.finish();
+  },
+  finish: function () { audio.pause(); this.st = 'paused'; this.finished = true; UI.player.render(); UI.grid.statuses(); },
+  onError: function () { if (this.st === 'playing' || this.st === 'loading') { this.st = 'paused'; UI.player.msg('Could not load this ' + (this.o.kind === 'quran' ? 'surah' : 'file') + ' — offline? Download it while online.', true); UI.player.render(); } },
+  onVisible: function () { if (this.st === 'playing' && audio.paused && !audio.ended) { this.st = 'paused'; UI.player.render(); } },
+  isPlaying: function () { return this.st === 'playing' || this.st === 'loading'; },
+  toggle: function () { if (this.isPlaying()) this.pause(); else this.resume(); },
+  pause: function () { if (this.st === 'loading') { this.gen++; } audio.pause(); this.persist(); this.st = 'paused'; UI.player.render(); UI.grid.statuses(); },
+  resume: function () {
+    var self = this;
+    if (this.finished) { this.finished = false; if (this.o.kind === 'quran') { this.o.a = 1; this.s = this.o.s0 != null ? this.o.s0 : this.s; this.o.resume = this.V()[(this.o.a0 || 1) - 1][0] / 1000; } this.start(); return; }
+    if (this.st !== 'paused') return;
+    if (!Engine.url || Engine.url === SILENT) { this.start(); return; }
+    audio.playbackRate = this.rate(); this.st = 'playing';
+    Engine.play().then(function () { ensureLoop(); UI.player.render(); UI.grid.statuses(); self.media(); })
+      .catch(function () { self.st = 'paused'; UI.player.msg('Playback was blocked. Tap play.', true); UI.player.render(); });
+  },
+  seekSec: function (t) { var self = this; Engine.seekTo(Math.max(0, t)).then(function () { self.tick(audio.currentTime); }).catch(function () {}); },
+  prev: function () {
+    var o = this.o;
+    if (o.kind === 'quran') { var V = this.V(), ai = this.ayahIndexAt(audio.currentTime * 1000), start = V[ai][0] / 1000;
+      if (audio.currentTime - start > 1.5 || ai === 0) { if (ai === 0 && audio.currentTime - start <= 1.5 && this.s > 1 && !(o.endS != null && this.s <= (o.s0 || 1))) { this.s--; o.a = this.V().length; o.resume = this.V()[o.a - 1][0] / 1000; this.start(); return; } this.seekSec(start); }
+      else this.seekSec(V[ai - 1][0] / 1000);
+    } else this.seekSec(audio.currentTime - 15);
+  },
+  next: function () {
+    var o = this.o;
+    if (o.kind === 'quran') { var V = this.V(), ai = this.ayahIndexAt(audio.currentTime * 1000);
+      if (ai + 1 < V.length) this.seekSec(V[ai + 1][0] / 1000); else this.onEnded();
+    } else this.seekSec(audio.currentTime + 15);
+  },
+  setRate: function (r) { state.speeds[this.speedSet()] = r; lsSet('speeds', state.speeds); audio.playbackRate = r; },
+  stop: function () { this.gen++; if (!audio.paused) audio.pause(); this.persist(); this.st = 'idle'; }
+};
+
+/* =========================================================================
+   downloads (Cache Storage) — the service worker serves these as 206 slices
+   ========================================================================= */
+var DL = {
+  cacheName: 'mushaf-audio-v1', have: {}, busy: {}, ok: typeof caches !== 'undefined',
+  init: function () {
+    var self = this; if (!this.ok) return Promise.resolve();
+    return caches.open(this.cacheName).then(function (c) { return c.keys(); }).then(function (keys) { self.have = {}; keys.forEach(function (r) { self.have[r.url] = true; }); }).catch(function () { self.ok = false; });
+  },
+  state: function (url) { if (!url) return 'none'; if (this.busy[url] != null) return 'busy'; return this.have[url] ? 'done' : 'none'; },
+  pct: function (url) { return this.busy[url] || 0; },
+  start: function (url, onChange) {
+    var self = this; if (!this.ok || this.busy[url] != null || this.have[url]) return Promise.resolve();
+    this.busy[url] = 0; onChange();
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var total = +res.headers.get('Content-Length') || 0, got = 0, chunks = [], reader = res.body.getReader();
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          chunks.push(r.value); got += r.value.byteLength;
+          if (total) { self.busy[url] = Math.round(got / total * 100); onChange(); }
+          return pump();
+        });
+      }
+      return pump().then(function () {
+        var blob = new Blob(chunks, { type: 'audio/mpeg' });
+        return caches.open(self.cacheName).then(function (c) {
+          return c.put(url, new Response(blob, { status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': String(blob.size), 'Accept-Ranges': 'bytes' } }));
+        });
+      });
+    }).then(function () { delete self.busy[url]; self.have[url] = true; onChange(); })
+      .catch(function () { delete self.busy[url]; onChange(); });
+  },
+  remove: function (url, onChange) {
+    var self = this; if (!this.ok) return Promise.resolve();
+    return caches.open(this.cacheName).then(function (c) { return c.delete(url); }).then(function () { delete self.have[url]; onChange(); });
+  }
+};
+
+/* =========================================================================
+   sheets: open / peek / close, pulled down with pointer + touch events
+   ========================================================================= */
+function makeSheet(elm, cfg) {
+  cfg = cfg || {};
+  var sh = { el: elm, st: 'closed' };
+  function peekOffset() { return elm.getBoundingClientRect().height - stripHeight(); }
+  function stripHeight() { var s = $('.strip', elm); return s ? s.getBoundingClientRect().height : 0; }
+  function apply(st) {
+    sh.st = st;
+    elm.style.transition = ''; void elm.offsetHeight; elm.style.transform = '';
+    elm.classList.toggle('open', st === 'open'); elm.classList.toggle('peek', st === 'peek');
+    if (cfg.onState) cfg.onState(st);
+  }
+  sh.open = function () { apply('open'); };
+  sh.peek = function () { apply('peek'); };
+  sh.close = function () { apply('closed'); };
+
+  var id = null, x0 = 0, y0 = 0, ly = 0, lt = 0, vy = 0, decided = false, drag = false, scroller = null, base = 0, moved = false;
+  function reset() { id = null; decided = false; drag = false; scroller = null; }
+  function decide(x, y) {
+    var dy = y - y0, dx = x - x0;
+    if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+    decided = true;
+    if (sh.st === 'peek') drag = Math.abs(dy) > Math.abs(dx);
+    else drag = dy > 0 && Math.abs(dy) > Math.abs(dx) * 1.2 && (!scroller || scroller.scrollTop <= 0);
+    if (drag) { base = sh.st === 'peek' ? peekOffset() : 0; elm.style.transition = 'none'; }
+  }
+  function move(x, y, t) {
+    if (!decided) decide(x, y);
+    if (!drag) return;
+    moved = true;
+    var off = Math.max(0, base + (y - y0));
+    elm.style.transform = 'translate3d(0,' + off + 'px,0)';
+    if (t - lt > 0) vy = (y - ly) / (t - lt); ly = y; lt = t;
+  }
+  function end() {
+    if (drag) {
+      var dy = ly - y0;
+      if (sh.st === 'peek') { if (dy < -50 || vy < -0.4) apply('open'); else apply('peek'); }
+      else if (dy > 120 || vy > 0.5) { if (cfg.collapsible) apply('peek'); else { apply('closed'); if (cfg.onDismiss) cfg.onDismiss(); } }
+      else apply(sh.st);
+    }
+    reset();
+  }
+  elm.addEventListener('pointerdown', function (e) {
+    if (!e.isPrimary || id !== null) return;
+    if (sh.st === 'peek' && e.target.closest('button')) return;
+    id = e.pointerId; x0 = ly = e.clientX; y0 = e.clientY; lt = e.timeStamp; vy = 0; decided = false; drag = false; moved = false;
+    scroller = e.target.closest('.sh-body');
+    if (e.pointerType === 'mouse') { try { elm.setPointerCapture(e.pointerId); } catch (x) {} }
+  });
+  elm.addEventListener('pointermove', function (e) { if (e.pointerId !== id) return; move(e.clientX, e.clientY, e.timeStamp); });
+  elm.addEventListener('pointerup', function (e) { if (e.pointerId !== id) return; if (!moved && sh.st === 'peek' && !e.target.closest('button')) { reset(); apply('open'); return; } end(); });
+  elm.addEventListener('pointercancel', function (e) { if (e.pointerId !== id) return; end(); });
+  elm.addEventListener('touchmove', function (e) {
+    if (id === null) return;
+    var t = e.touches[0]; if (!decided) decide(t.clientX, t.clientY);
+    if (drag) e.preventDefault();
+  }, { passive: false });
+  return sh;
+}
+
+/* =========================================================================
+   UI
+   ========================================================================= */
+var UI = { grid: {}, player: {}, sheet: {} };
+var scrim = $('#scrim');
+
+/* ---------- home grid + edit mode ---------- */
+(function () {
+  var grid = $('#grid'), home = $('#home'), hint = $('#hint'), done = $('#done');
+  var tiles = {}, ghosts = [], slots = [], editing = false, relayoutTimers = [];
+  var pressTimer = 0, pressEl = null, px = 0, py = 0, pressMoved = false, longFired = false;
+  var drag = null; // { el, kind, ox, oy, sx, sy }
+
+  function layout() {
+    var W = grid.clientWidth, H = grid.clientHeight, size = state.layout.size, rows = size / 2, gap = 12;
+    if (W <= 0) return;
+    var tw = (W - gap) / 2, th = Math.min(tw * 1.26, (H - gap * (rows - 1)) / rows);
+    th = Math.max(th, 96);
+    var totalH = rows * th + (rows - 1) * gap, oy = Math.max(0, (H - totalH) / 2);
+    slots = [];
+    for (var i = 0; i < size; i++) slots.push({ x: (i % 2) * (tw + gap), y: oy + Math.floor(i / 2) * (th + gap), w: tw, h: th });
+    state.layout.tiles.forEach(function (kind, i) {
+      var t = tiles[kind], s = slots[i]; if (!t || !s) return;
+      t.style.width = s.w + 'px'; t.style.height = s.h + 'px';
+      if (drag && drag.kind === kind) return;
+      t.style.transform = 'translate3d(' + s.x + 'px,' + s.y + 'px,0)';
+    });
+    ghosts.forEach(function (g) { g.remove(); }); ghosts = [];
+    for (var k = state.layout.tiles.length; k < size; k++) {
+      var g = el('div', 'ghost'), s2 = slots[k];
+      g.style.width = s2.w + 'px'; g.style.height = s2.h + 'px'; g.style.transform = 'translate3d(' + s2.x + 'px,' + s2.y + 'px,0)';
+      grid.appendChild(g); ghosts.push(g);
+    }
+  }
+  function relayoutSoon() { relayoutTimers.forEach(clearTimeout); relayoutTimers = [0, 120, 260, 420].map(function (ms) { return setTimeout(layout, ms); }); }
+  window.addEventListener('resize', relayoutSoon);
+  window.addEventListener('orientationchange', relayoutSoon);
+
+  function statusOf(kind) {
+    var m = state.memo, l;
+    switch (kind) {
+      case 'memorize': return surahName(m.s) + ' · ' + m.s + ':' + m.a;
+      case 'revise': return 'From ' + m.s + ':' + m.a + ' · juz ' + Q.juzOf(m.s, m.a);
+      case 'husary': l = state.last.husary; return l ? surahName(l.s) + ' · ayah ' + l.a : '114 surahs';
+      case 'reciters': l = state.last.reciters; return l ? l.title : (D.content.reciters ? D.content.reciters.items.length + ' favourites' : '');
+      default: l = state.last[kind]; if (l) return l.title; var c = D.content[kind]; return c ? c.items.length + (kind === 'sharh' ? ' lessons' : ' items') : '';
+    }
+  }
+  function makeTile(kind) {
+    var t = el('div', 'tile'); t.dataset.kind = kind;
+    t.innerHTML = '<div class="tin"><button class="rm" aria-label="Remove"></button><div class="tname">' + esc(KINDS[kind]) + '</div><div class="tstat tnum"></div></div>';
+    var rm = $('.rm', t);
+    rm.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    rm.addEventListener('click', function (e) { e.stopPropagation(); removeTile(kind); });
+    return t;
+  }
+  function render() {
+    KIND_ORDER.forEach(function (kind) {
+      var on = state.layout.tiles.indexOf(kind) >= 0;
+      if (on && !tiles[kind]) { tiles[kind] = makeTile(kind); grid.appendChild(tiles[kind]); tiles[kind].style.opacity = '0'; requestAnimationFrame(function () { tiles[kind].style.opacity = ''; }); }
+      if (!on && tiles[kind]) { tiles[kind].remove(); delete tiles[kind]; }
+    });
+    statuses(); layout();
+  }
+  function statuses() {
+    Object.keys(tiles).forEach(function (kind) {
+      $('.tstat', tiles[kind]).textContent = statusOf(kind);
+      tiles[kind].classList.toggle('live', !!(active && active.kind === kind && active.isPlaying()));
+    });
+    $('#topSub').textContent = '';
+  }
+  function save() { lsSet('layout', state.layout); }
+  function removeTile(kind) { var i = state.layout.tiles.indexOf(kind); if (i < 0) return; state.layout.tiles.splice(i, 1); save(); render(); renderEditBar(); }
+  function addTile(kind) { if (state.layout.tiles.length >= state.layout.size || state.layout.tiles.indexOf(kind) >= 0) return; state.layout.tiles.push(kind); save(); render(); renderEditBar(); }
+  function setSize(n) { state.layout.size = n; if (state.layout.tiles.length > n) state.layout.tiles.length = n; save(); render(); renderEditBar(); }
+
+  /* edit bar */
+  var editSheet = makeSheet($('#editbar'), { onDismiss: exitEdit });
+  function renderEditBar() {
+    $$('#sizeSeg button').forEach(function (b) { b.classList.toggle('on', +b.dataset.v === state.layout.size); });
+    var box = $('#inactive'); box.innerHTML = '';
+    var inactive = KIND_ORDER.filter(function (k) { return state.layout.tiles.indexOf(k) < 0; });
+    var full = state.layout.tiles.length >= state.layout.size;
+    inactive.forEach(function (k) {
+      var c = el('button', 'chip' + (full ? ' off' : ''), esc(KINDS[k]));
+      c.addEventListener('click', function () { addTile(k); });
+      box.appendChild(c);
+    });
+    $('#editnote').textContent = inactive.length === 0 ? 'Every tile is on the grid.' : full ? 'The grid is full — remove a tile or switch to 6.' : 'Tap to add. Drag tiles to reorder.';
+  }
+  $$('#sizeSeg button').forEach(function (b) { b.addEventListener('click', function () { setSize(+b.dataset.v); }); });
+  function enterEdit() {
+    if (editing) return; editing = true;
+    document.body.classList.add('editing'); home.classList.add('editing');
+    done.hidden = false; hint.style.opacity = '0';
+    if (!state.editSeen) { state.editSeen = true; lsSet('editSeen', true); }
+    UI.player.hideForEdit(true);
+    UI.sheet.close();
+    renderEditBar(); editSheet.open(); relayoutSoon();
+  }
+  function exitEdit() {
+    if (!editing) return; editing = false;
+    document.body.classList.remove('editing'); home.classList.remove('editing');
+    done.hidden = true; editSheet.close(); UI.player.hideForEdit(false); relayoutSoon();
+  }
+  done.addEventListener('click', exitEdit);
+
+  /* long-press to edit, tap to open, drag to reorder */
+  grid.addEventListener('pointerdown', function (e) {
+    var t = e.target.closest('.tile'); if (!t || !e.isPrimary) return;
+    if (e.target.closest('.rm')) return;
+    px = e.clientX; py = e.clientY; pressMoved = false; longFired = false; pressEl = t;
+    if (e.pointerType === 'mouse') { try { grid.setPointerCapture(e.pointerId); } catch (x) {} }
+    if (editing) {
+      var m = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(t.style.transform) || [0, 0, 0];
+      drag = { el: t, kind: t.dataset.kind, ox: +m[1], oy: +m[2], on: false };
+      t.classList.add('pressdrag');
+      return;
+    }
+    t.classList.add('press');
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(function () {
+      if (pressMoved || !pressEl) return;
+      longFired = true; pressEl.classList.remove('press'); enterEdit();
+      var m2 = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(pressEl.style.transform) || [0, 0, 0];
+      drag = { el: pressEl, kind: pressEl.dataset.kind, ox: +m2[1], oy: +m2[2], on: false };
+    }, 500);
+  });
+  grid.addEventListener('pointermove', function (e) {
+    if (!pressEl) return;
+    var dx = e.clientX - px, dy = e.clientY - py;
+    if (!pressMoved && Math.abs(dx) + Math.abs(dy) > 8) { pressMoved = true; if (!editing) { clearTimeout(pressTimer); pressEl.classList.remove('press'); } }
+    if (drag && editing) {
+      if (!drag.on && Math.abs(dx) + Math.abs(dy) > 6) { drag.on = true; drag.el.classList.add('drag'); }
+      if (drag.on) {
+        var gx = clamp(drag.ox + dx, -16, grid.clientWidth - slots[0].w + 16), gy = clamp(drag.oy + dy, -16, grid.clientHeight - slots[0].h + 16);
+        drag.el.style.transform = 'translate3d(' + gx + 'px,' + gy + 'px,0)';
+        var cx = gx + slots[0].w / 2, cy = gy + slots[0].h / 2, best = -1, bd = Infinity;
+        slots.forEach(function (s, i) { var d = Math.pow(s.x + s.w / 2 - cx, 2) + Math.pow(s.y + s.h / 2 - cy, 2); if (d < bd) { bd = d; best = i; } });
+        var cur = state.layout.tiles.indexOf(drag.kind);
+        if (best >= 0 && best < state.layout.tiles.length && best !== cur) { state.layout.tiles.splice(cur, 1); state.layout.tiles.splice(best, 0, drag.kind); layout(); }
+      }
+    }
+  });
+  grid.addEventListener('touchmove', function (e) { if (drag) e.preventDefault(); }, { passive: false });
+  function release(e, cancelled) {
+    if (!pressEl) return;
+    clearTimeout(pressTimer);
+    var t = pressEl; pressEl = null; t.classList.remove('press'); t.classList.remove('pressdrag');
+    if (drag) { drag.el.classList.remove('drag'); drag = null; save(); layout(); return; }
+    if (cancelled) pressMoved = true;
+  }
+  grid.addEventListener('pointerup', function (e) { release(e, false); });
+  grid.addEventListener('pointercancel', function (e) { release(e, true); });
+  /* the tap itself is the click that follows pointerup, so the scrim of the sheet it opens cannot swallow it */
+  grid.addEventListener('click', function (e) {
+    var t = e.target.closest('.tile'); if (!t || editing || longFired || pressMoved || e.target.closest('.rm')) return;
+    openTile(t.dataset.kind);
+  });
+  grid.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  UI.grid = { render: render, statuses: statuses, layout: layout, relayout: relayoutSoon, isEditing: function () { return editing; }, exitEdit: exitEdit, enterEdit: enterEdit };
+  if (state.editSeen) hint.style.opacity = '0';
+})();
+
+/* ---------- tile actions ---------- */
+function openTile(kind) {
+  switch (kind) {
+    case 'memorize': return openMemo();
+    case 'revise': return UI.sheet.revision();
+    case 'husary': return UI.sheet.picker({ title: 'Husary', mode: 'play' });
+    case 'reciters': return UI.sheet.collection('reciters');
+    default: return UI.sheet.collection(kind);
+  }
+}
+var memo = null;
+function openMemo() {
+  if (!memo) { memo = new MemoSession(); }
+  if (active !== memo) { setSession(memo); UI.player.attach(memo); memo.start(state.memo.s, state.memo.a); }
+  else if (!memo.isPlaying() && memo.st !== 'done') memo.resume();
+  UI.player.show();
+}
+function startListen(opts) {
+  var s = new ListenSession(opts);
+  if (opts.kind === 'quran') { opts.s0 = opts.s; opts.a0 = opts.a; }
+  setSession(s); UI.player.attach(s); s.start(); UI.player.show();
+}
+
+/* ---------- content sheet ---------- */
+(function () {
+  var sheetEl = $('#sheet'), head = $('#shHead'), body = $('#shBody');
+  var sh = makeSheet(sheetEl, { onDismiss: function () { scrim.classList.remove('on'); } });
+  function open(tall) { sheetEl.classList.toggle('tall', !!tall); body.scrollTop = 0; scrim.classList.add('on'); sh.open(); }
+  function close() { if (sh.st !== 'closed') { sh.close(); } scrim.classList.remove('on'); }
+  scrim.addEventListener('click', close);
+
+  function norm(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ًͯ-ٰٟۖ-ۭ]/g, '').replace(/[آأإ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^a-z0-9؀-ۿ]/g, ''); }
+
+  /* surah picker — grouped by juz, searchable, one tap to his juz */
+  function picker(o) {
+    var myJuz = Q.juzOf(state.memo.s, state.memo.a);
+    head.innerHTML = '<div class="sh-title"><div><h2>' + esc(o.title) + '</h2>' + (o.sub ? '<div class="sub">' + esc(o.sub) + '</div>' : '') + '</div><button class="chip" id="jumpJuz">Juz ' + myJuz + '</button></div>' +
+      '<input class="search" id="q" type="text" placeholder="Surah number or name" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false" inputmode="search" enterkeyhint="search">';
+    body.innerHTML = '';
+    var frag = document.createDocumentFragment(), sections = [];
+    for (var j = 1; j <= 30; j++) {
+      var sec = el('div', 'sec', 'Juz <span>' + j + '</span>'); sec.id = 'juz-' + j; sec.dataset.juz = j; frag.appendChild(sec);
+      var rows = [], js = Q.juzStart(j);
+      if (js.a > 1 && o.mode === 'play') {
+        var cs = Q.surah(js.s), r0 = el('button', 'row cont');
+        r0.dataset.q = norm(cs.name + ' ' + cs.arabic + ' ' + cs.en) + '|' + cs.n;
+        r0.innerHTML = '<span class="n tnum">' + cs.n + '</span><span class="names"><span class="lat">' + esc(cs.name) + ' · from ayah ' + js.a + '</span><span class="arn">' + esc(cs.arabic) + '</span></span><span class="meta tnum">p. ' + Q.pageOf(js.s, js.a) + '</span>';
+        r0.addEventListener('click', (function (s, a) { return function () { pick(s, a); }; })(js.s, js.a));
+        frag.appendChild(r0); rows.push(r0);
+      }
+      Q.surahs.forEach(function (su) {
+        if (su.juz !== j) return;
+        var r = el('button', 'row surah'); r.dataset.s = su.n;
+        r.dataset.q = norm(su.name + ' ' + su.arabic + ' ' + su.en) + '|' + su.n;
+        var url = D.tim.murattal[String(su.n)].url, dot = DL.state(url) === 'done' ? '<span class="dl"></span>' : '';
+        r.innerHTML = '<span class="n tnum">' + su.n + '</span><span class="names"><span class="lat">' + esc(su.name) + '</span><span class="arn">' + esc(su.arabic) + '</span></span><span class="meta tnum">' + su.ayahs + ' <b>ayat</b> · p. ' + su.page + dot + '</span>';
+        r.addEventListener('click', function () { pick(su.n, 1); });
+        frag.appendChild(r); rows.push(r);
+      });
+      sections.push({ sec: sec, rows: rows });
+    }
+    body.appendChild(frag);
+    function pick(s, a) {
+      if (o.mode === 'select') { ayahGrid(s, o); return; }
+      close();
+      startListen({ kind: 'quran', tile: 'husary', s: s, a: a, savePos: true, label: 'Husary', sub: 'Mahmoud Khalil al-Husary' });
+    }
+    var q = $('#q', head);
+    q.addEventListener('input', function () {
+      var v = norm(q.value), isNum = /^\d+$/.test(v);
+      sections.forEach(function (sc) {
+        var any = false;
+        sc.rows.forEach(function (r) {
+          var parts = r.dataset.q.split('|'), ok = !v || (isNum ? parts[1].indexOf(v) === 0 : parts[0].indexOf(v) >= 0);
+          r.hidden = !ok; if (ok) any = true;
+        });
+        sc.sec.hidden = !any;
+      });
+    });
+    $('#jumpJuz', head).addEventListener('click', function () {
+      var target = $('#juz-' + myJuz, body); if (!target) return;
+      body.scrollTop = target.offsetTop - body.offsetTop;
+    });
+    open(true);
+    if (o.mode === 'select') { var cur = $('#juz-' + Q.juzOf(o.s || state.memo.s, 1), body); if (cur) body.scrollTop = cur.offsetTop - body.offsetTop; }
+  }
+  function ayahGrid(s, o) {
+    var su = Q.surah(s), curA = (s === state.memo.s) ? state.memo.a : 0;
+    head.innerHTML = '<button class="back" id="back">Surahs</button><div class="sh-title"><div><h2>' + esc(su.name) + ' <span class="ar">' + esc(su.arabic) + '</span></h2><div class="sub tnum">Which ayah are you learning? ' + su.ayahs + ' ayat · page ' + su.page + '</div></div></div>';
+    body.innerHTML = '';
+    var g = el('div', 'agrid tnum');
+    for (var a = 1; a <= su.ayahs; a++) { var b = el('button', a === curA ? 'cur' : '', String(a)); b.dataset.a = a; g.appendChild(b); }
+    g.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; close(); o.onPick(s, +b.dataset.a); });
+    body.appendChild(g); body.scrollTop = 0;
+    $('#back', head).addEventListener('click', function () { picker(o); });
+    var cur = $('.cur', g); if (cur) setTimeout(function () { if (cur.offsetTop > body.clientHeight - 80) body.scrollTop = cur.offsetTop - body.clientHeight / 2; }, 50);
+  }
+
+  /* revision — four ranges relative to his position */
+  function revision() {
+    var m = state.memo, P = Q.pageOf(m.s, m.a), J = Q.juzOf(m.s, m.a);
+    var p2 = Math.min(604, P + 4), ps = Q.pageStart(P), pe = Q.pageEnd(p2), je = Q.juzEnd(J), su = Q.surah(m.s);
+    var C = [
+      { id: 'pages', name: 'Last 5 pages', def: 'From the first ayah of page ' + P + ' to the end of page ' + p2 + '.', s: ps.s, a: ps.a, es: pe.s, ea: pe.a },
+      { id: 'surah', name: 'Last surah', def: 'All of ' + su.name + '.', s: m.s, a: 1, es: m.s, ea: su.ayahs },
+      { id: 'juz', name: 'Last juz', def: 'From ' + Q.ref(m.s, m.a) + ' to the end of Juz ' + J + '.', s: m.s, a: m.a, es: je.s, ea: je.a },
+      { id: 'all', name: 'Everything', def: 'From ' + Q.ref(m.s, m.a) + ' to 114:6 — all you have memorised.', s: m.s, a: m.a, es: 114, ea: 6 }
+    ];
+    head.innerHTML = '<div class="sh-title"><div><h2>Revise</h2><div class="sub tnum">You are at ' + Q.ref(m.s, m.a) + ' · page ' + P + ' · juz ' + J + '</div></div></div>';
+    body.innerHTML = '';
+    C.forEach(function (c) {
+      var b = el('button', 'choice');
+      b.innerHTML = '<div class="c1"><span>' + c.name + '</span><span class="rng tnum">' + Q.ref(c.s, c.a) + ' → ' + Q.ref(c.es, c.ea) + '</span></div><div class="c2 tnum">' + esc(c.def) + '</div>';
+      b.addEventListener('click', function () {
+        close();
+        startListen({ kind: 'quran', tile: 'revise', s: c.s, a: c.a, endS: c.es, endA: c.ea, savePos: false, label: 'Revision · ' + c.name, sub: Q.ref(c.s, c.a) + ' → ' + Q.ref(c.es, c.ea) });
+      });
+      body.appendChild(b);
+    });
+    var note = el('div', 'empty', 'Continuous, no pauses. Change the position from the Memorise tile.');
+    body.appendChild(note);
+    open(false);
+  }
+
+  /* collections: reciters, sharh, hadith, podcasts */
+  function collection(kind) {
+    head.innerHTML = '<div class="sh-title"><div><h2>' + esc(KINDS[kind]) + '</h2><div class="sub" id="colSub"></div></div></div>';
+    body.innerHTML = '<div class="empty">Loading…</div>';
+    open(true);
+    loadContent(kind).then(function (c) {
+      body.innerHTML = '';
+      if (c.note && /SAMPLE/i.test(c.note)) $('#colSub', head).textContent = 'Sample list — files not added yet';
+      c.items.forEach(function (it) {
+        var key = kind + ':' + it.id, saved = state.pos[key], url = it.url;
+        var r = el('button', 'row item' + (url ? '' : ' na'));
+        var second = kind === 'reciters' ? esc(it.reciter || '') : (saved > 3 ? 'Resumes at ' + fmt(saved) : (url ? '' : 'Not yet available'));
+        if (kind === 'reciters' && saved > 3) second += ' · resumes at ' + fmt(saved);
+        var right = url ? (it.duration ? fmt(it.duration) : '') : '';
+        r.innerHTML = '<span><div class="t1">' + esc(it.title) + '</div>' + (second ? '<div class="t2 tnum">' + second + '</div>' : '') + '</span><span class="side"><span class="meta tnum">' + right + '</span><button class="txtbtn quiet dlb"></button></span>';
+        var dlb = $('.dlb', r);
+        function paintDl() { var st = DL.state(url); dlb.textContent = !url || !DL.ok ? '' : st === 'busy' ? DL.pct(url) + '%' : st === 'done' ? 'Downloaded' : 'Download'; }
+        paintDl();
+        dlb.addEventListener('click', function (e) {
+          e.stopPropagation(); if (!url) return;
+          var st = DL.state(url);
+          if (st === 'none') DL.start(url, paintDl); else if (st === 'done') DL.remove(url, paintDl);
+        });
+        r.addEventListener('click', function () {
+          if (!url) return;
+          close();
+          state.last[kind] = { title: it.title, id: it.id }; lsSet('last', state.last);
+          startListen({ kind: 'track', tile: kind, url: url, title: it.title, sub: kind === 'reciters' ? it.reciter : c.title, posKey: key, duration: it.duration, speedSet: kind === 'reciters' ? 'quran' : 'lecture', surah: it.surah });
+        });
+        body.appendChild(r);
+      });
+      if (!c.items.length) body.appendChild(el('div', 'empty', 'Nothing here yet.'));
+    }).catch(function () { body.innerHTML = '<div class="empty">Could not load this list.</div>'; });
+  }
+
+  UI.sheet = { picker: picker, revision: revision, collection: collection, close: close, isOpen: function () { return sh.st === 'open'; } };
+})();
+
+/* ---------- player sheet (memorisation + listening) ---------- */
+(function () {
+  var pl = $('#player'), full = $('.full', pl), text = $('#pText'), cap = $('#pCap'), stat = $('#pStat'), bar = $('#pBar'), drain = $('#pDrain');
+  var t1 = $('#pT1'), t2 = $('#pT2'), kick = $('#pKick'), title = $('#pTitle'), dlBtn = $('#pDl'), msg = $('#pMsg'), setBox = $('#pSet');
+  var bPlay = $('#pPlay'), bPrev = $('#pPrev'), bNext = $('#pNext'), sPlay = $('#sPlay'), sT1 = $('#sT1'), sT2 = $('#sT2'), sProg = $('#sProg');
+  var ses = null, wordEls = [], curAyah = 0, veiled = false, lastRecite = -1, hiddenForEdit = false, dlUrl = null, dlConfirm = 0;
+  var sh = makeSheet(pl, { collapsible: true, onState: function (st) {
+    document.body.classList.toggle('pfull', st === 'open');
+    document.body.classList.toggle('strip', st === 'peek');
+    if (st !== 'closed') UI.grid.relayout(); else UI.grid.relayout();
+  } });
+
+  function attach(s) { ses = s; pl.classList.toggle('listen', s.kind !== 'memorize'); pl.classList.toggle('memo', s.kind === 'memorize'); text.innerHTML = ''; wordEls = []; curAyah = 0; msg.textContent = ''; msg.className = 'pmsg'; buildSettings(); render(); }
+  function show() { sh.open(); }
+  function hideForEdit(on) { hiddenForEdit = on; if (!ses) return; if (on) { if (sh.st === 'peek') { pl.classList.remove('peek'); } } else if (sh.st === 'peek') pl.classList.add('peek'); }
+  function closePlayer() { if (ses) { setSession(null); } ses = null; sh.close(); UI.grid.statuses(); if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'none'; } catch (e) {} } }
+  $('#sClose').addEventListener('click', closePlayer);
+  sPlay.addEventListener('click', function (e) { e.stopPropagation(); if (ses) ses.toggle(); });
+  bPlay.addEventListener('click', function () { if (ses) ses.toggle(); });
+  bPrev.addEventListener('click', function () { if (ses) ses.prev(); });
+  bNext.addEventListener('click', function () { if (ses) ses.next(); });
+  title.addEventListener('click', function () {
+    if (!ses || ses.kind !== 'memorize') return;
+    UI.sheet.picker({ title: 'I am learning', sub: 'Pick the surah, then the ayah', mode: 'select', s: state.memo.s, onPick: function (s, a) {
+      state.memo.s = s; state.memo.a = a; saveMemo(); UI.grid.statuses();
+      if (ses && ses.kind === 'memorize') ses.replan();
+    } });
+  });
+  text.addEventListener('click', function () { if (veiled) { text.classList.remove('veil'); } });
+
+  /* download control in the header */
+  function paintDl() {
+    if (!ses || !DL.ok) { dlBtn.textContent = ''; return; }
+    var url = ses.kind === 'memorize' ? (ses.tim && ses.s ? ses.tim[String(ses.s)].url : null) : (ses.o.kind === 'quran' ? D.tim.murattal[String(ses.s)].url : ses.o.url);
+    dlUrl = url;
+    var st = DL.state(url);
+    dlBtn.textContent = !url ? '' : st === 'busy' ? DL.pct(url) + '%' : st === 'done' ? (dlConfirm > Date.now() ? 'Remove?' : 'Downloaded') : 'Download';
+    dlBtn.classList.toggle('quiet', st !== 'none');
+  }
+  dlBtn.addEventListener('click', function () {
+    if (!dlUrl) return; var st = DL.state(dlUrl);
+    if (st === 'none') DL.start(dlUrl, paintDl);
+    else if (st === 'done') { if (dlConfirm > Date.now()) { dlConfirm = 0; DL.remove(dlUrl, paintDl); } else { dlConfirm = Date.now() + 2500; paintDl(); setTimeout(paintDl, 2600); } }
+  });
+
+  /* progress scrub (listening only) */
+  var prog = $('#pProg'), scrubbing = false;
+  function scrubTo(e) { if (!ses || ses.kind === 'memorize') return; var r = prog.getBoundingClientRect(), f = clamp((e.clientX - r.left) / r.width, 0, 1); var dur = ses.o.kind === 'quran' ? D.tim.murattal[String(ses.s)].d / 1000 : (audio.duration || 0); if (dur) ses.seekSec(f * dur); }
+  prog.addEventListener('pointerdown', function (e) { if (!ses || ses.kind === 'memorize') return; scrubbing = true; e.stopPropagation(); scrubTo(e); });
+  prog.addEventListener('pointermove', function (e) { if (scrubbing) { e.stopPropagation(); scrubTo(e); } });
+  prog.addEventListener('pointerup', function () { scrubbing = false; });
+  prog.addEventListener('pointercancel', function () { scrubbing = false; });
+
+  /* settings */
+  function seg(key, values, labels, current, onPick) {
+    var row = el('div', 'srow'), lab = el('span', 'slab', key), s = el('div', 'seg');
+    values.forEach(function (v, i) { var b = el('button', String(v) === String(current) ? 'on' : '', labels[i]); b.addEventListener('click', function () { $$('button', s).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); onPick(v); }); s.appendChild(b); });
+    row.appendChild(lab); row.appendChild(s); return row;
+  }
+  function buildSettings() {
+    setBox.innerHTML = '';
+    if (!ses) return;
+    var m = state.memo;
+    if (ses.kind === 'memorize') {
+      setBox.appendChild(seg('Speed', SPEEDS.quran, ['0.5×', '0.75×', '1×', '1.25×'], m.speed, function (v) { m.speed = v; saveMemo(); audio.playbackRate = v; if (ses.st === 'playing') ses.armFallback(); }));
+      setBox.appendChild(seg('Pause', [0.75, 1, 1.25, 1.5], ['0.75×', '1×', '1.25×', '1.5×'], m.pause, function (v) { m.pause = v; saveMemo(); }));
+      setBox.appendChild(seg('Repeat', [1, 2, 3, 'inf'], ['1', '2', '3', '∞'], m.repeat, function (v) { m.repeat = v; saveMemo(); render(); }));
+      setBox.appendChild(seg('Block', ['ayah', '2', '3', 'words', 'auto'], ['Ayah', '2', '3', 'Words', 'Auto'], m.mode, function (v) { m.mode = v; saveMemo(); ses.replan(); }));
+      setBox.appendChild(seg('Source', ['murattal', 'muallim'], ['Murattal', 'Muallim'], m.source, function (v) { m.source = v; saveMemo(); ses.replan(); }));
+      var row = el('div', 'srow'), lab = el('span', 'slab', 'Hide text while reciting'), sw = el('button', 'switch' + (m.hide ? ' on' : ''));
+      row.style.gridTemplateColumns = '1fr auto'; sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', m.hide ? 'true' : 'false');
+      sw.addEventListener('click', function () { m.hide = !m.hide; saveMemo(); sw.classList.toggle('on', m.hide); sw.setAttribute('aria-checked', m.hide ? 'true' : 'false'); render(); });
+      row.appendChild(lab); row.appendChild(sw); setBox.appendChild(row);
+    } else {
+      var set = ses.speedSet(), vals = SPEEDS[set];
+      setBox.appendChild(seg('Speed', vals, vals.map(function (v) { return v + '×'; }), ses.rate(), function (v) { ses.setRate(v); }));
+    }
+  }
+
+  /* text */
+  /* one span per word, keyed ayah*1000+position; the sign ۝ carries the ayah number */
+  function renderWords(list) {
+    text.innerHTML = ''; wordEls = [];
+    var frag = document.createDocumentFragment();
+    list.forEach(function (w) {
+      if (w.sign) { var sg = el('span', 'sign', '۝' + arDigits(w.sign)); frag.appendChild(sg); frag.appendChild(document.createTextNode(' ')); return; }
+      var sp = el('span', 'w todo', esc(w.t)); sp.dataset.k = w.a * 1000 + w.p; frag.appendChild(sp); frag.appendChild(document.createTextNode(' ')); wordEls.push(sp);
+    });
+    text.appendChild(frag);
+  }
+  function highlight(key) {
+    for (var i = 0; i < wordEls.length; i++) { var e = wordEls[i], k = +e.dataset.k; e.className = 'w ' + (key < 0 ? 'todo' : k < key ? 'done' : k === key ? 'cur' : 'todo'); }
+    if (key < 0 && ses && ses.kind !== 'memorize') { for (var j = 0; j < wordEls.length; j++) wordEls[j].className = 'w done'; }
+  }
+  function ayah(s, a) {  /* listening: show one ayah */
+    curAyah = a;
+    var ws = D.words[String(s)][a - 1].map(function (t, i) { return { t: t, a: a, p: i + 1 }; }); ws.push({ sign: a });
+    renderWords(ws);
+    cap.textContent = 'Surah ' + s + ' · Ayah ' + a + ' · Page ' + Q.pageOf(s, a);
+    var su = Q.surah(s);
+    kick.textContent = ses.o.label || 'Husary'; title.textContent = su.name + '  ' + su.arabic;
+    sT1.textContent = su.name + ' · ' + s + ':' + a; sT2.textContent = ses.o.label || 'Husary';
+    paintDl();
+  }
+  function progress(f, drainF) { bar.style.width = clamp(f, 0, 1) * 100 + '%'; drain.style.width = clamp(drainF, 0, 1) * 100 + '%'; sProg.style.width = clamp(f, 0, 1) * 100 + '%'; }
+  function times(t, dur) { t1.textContent = fmt(t); t2.textContent = dur ? '−' + fmt(Math.max(0, dur - t)) : ''; }
+  function recite(leftMs) { var s = Math.ceil(leftMs / 1000); if (s !== lastRecite) { lastRecite = s; stat.textContent = 'Recite · ' + Math.max(0, s) + ' s'; } }
+  function setMsg(m, err) { msg.textContent = m || ''; msg.className = 'pmsg' + (err ? ' err' : ''); }
+  function icon(playing) { bPlay.innerHTML = playing ? SVG.pause : SVG.play; sPlay.innerHTML = playing ? SVG.pause : SVG.play; }
+
+  function render() {
+    if (!ses) return;
+    var playing = ses.isPlaying();
+    icon(playing);
+    if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'; } catch (e) {} }
+    if (ses.kind === 'memorize') {
+      var m = state.memo, b = ses.block(), su = Q.surah(m.s);
+      kick.textContent = 'Memorise · ' + (m.source === 'muallim' ? 'Muallim' : 'Murattal');
+      title.textContent = su.name + ' · ' + m.s + ':' + m.a; title.classList.add('link');
+      bPrev.innerHTML = SVG.prev; bNext.innerHTML = SVG.next; bPrev.className = 'ibtn'; bNext.className = 'ibtn';
+      t1.textContent = ''; t2.textContent = '';
+      if (b) {
+        if (text.dataset.key !== b.s + '/' + b.i + '/' + m.mode + '/' + m.source) { text.dataset.key = b.s + '/' + b.i + '/' + m.mode + '/' + m.source; renderWords(b.words); }
+        var where = b.a1 === b.a2 ? 'Ayah ' + b.a1 : 'Ayat ' + b.a1 + '–' + b.a2;
+        cap.textContent = 'Surah ' + b.s + ' · ' + where + (b.parts > 1 ? ' · part ' + b.part + ' of ' + b.parts : '') + ' · Page ' + Q.pageOf(b.s, b.a1);
+        var rep = m.repeat === 'inf' ? 'repeat ' + ses.rep + ' · ∞' : 'repeat ' + ses.rep + ' of ' + m.repeat;
+        if (ses.st === 'pausing') { lastRecite = -1; recite(ses.pauseEnd - Date.now()); stat.className = 'stat tnum recite'; }
+        else { stat.textContent = 'Block ' + (b.i + 1) + ' of ' + b.n + ' · ' + rep + (ses.st === 'loading' ? ' · loading' : ses.st === 'paused' ? ' · paused' : ''); stat.className = 'stat tnum'; }
+        sT1.textContent = su.name + ' · ' + where; sT2.textContent = ses.st === 'pausing' ? 'Recite' : 'Memorise · block ' + (b.i + 1) + ' of ' + b.n;
+        veiled = ses.st === 'pausing' && m.hide; text.classList.toggle('veil', veiled);
+        if (ses.st !== 'playing') progress(ses.st === 'pausing' ? 0 : 0, ses.st === 'pausing' ? 1 : 0);
+        if (ses.st === 'done') { stat.textContent = 'Finished'; }
+      } else { cap.textContent = ''; stat.textContent = ses.st === 'loading' ? 'Loading…' : ''; sT1.textContent = su.name; sT2.textContent = 'Memorise'; }
+      mediaSession({ title: su.name + ' · ' + m.s + ':' + m.a, artist: 'Memorise · Husary' }, {
+        play: function () { ses.resume(); }, pause: function () { ses.pause(); }, previoustrack: function () { ses.prev(); }, nexttrack: function () { ses.next(); }
+      });
+    } else {
+      var o = ses.o;
+      title.classList.remove('link');
+      if (o.kind === 'quran') {
+        bPrev.innerHTML = SVG.prev; bNext.innerHTML = SVG.next; bPrev.className = 'ibtn'; bNext.className = 'ibtn';
+        if (ses.ai < 0) { var su2 = Q.surah(ses.s); kick.textContent = o.label || 'Husary'; title.textContent = su2.name + '  ' + su2.arabic; sT1.textContent = su2.name; sT2.textContent = o.label || 'Husary'; cap.textContent = ses.st === 'loading' ? 'Loading…' : ''; }
+        stat.textContent = ses.finished ? 'Finished' : (o.sub && o.endS != null ? o.sub : (ses.st === 'paused' ? 'Paused' : ''));
+        stat.className = 'stat tnum';
+      } else {
+        kick.textContent = o.sub || ''; title.textContent = o.title; sT1.textContent = o.title; sT2.textContent = o.sub || '';
+        bPrev.innerHTML = '−15'; bNext.innerHTML = '+15'; bPrev.className = 'ibtn step tnum'; bNext.className = 'ibtn step tnum';
+        text.innerHTML = ''; wordEls = []; text.dataset.key = '';
+        cap.textContent = ''; stat.textContent = ses.finished ? 'Finished' : ses.st === 'loading' ? 'Loading…' : ses.st === 'paused' ? 'Paused' : ''; stat.className = 'stat tnum';
+      }
+      text.classList.remove('veil'); veiled = false;
+    }
+    paintDl();
+  }
+
+  UI.player = { attach: attach, show: show, render: render, highlight: highlight, progress: progress, times: times, recite: recite, ayah: ayah, msg: setMsg, hideForEdit: hideForEdit, close: closePlayer, sheet: sh };
+})();
+
+/* =========================================================================
+   boot
+   ========================================================================= */
+var ready = loadCore().then(function () {
+  if (lsGet('layout', null) === null) lsSet('layout', state.layout);
+  UI.grid.render();
+  return Promise.all([DL.init()].concat(['reciters', 'sharh', 'hadith', 'podcasts'].map(function (k) { return loadContent(k).catch(function () {}); })));
+}).then(function () { UI.grid.statuses(); return true; }).catch(function (e) {
+  $('#hint').textContent = 'Could not load the Quran data.'; $('#hint').style.opacity = '1'; throw e;
+});
+window.__mushaf = { ready: ready, state: state, get active() { return active; }, audio: audio, Q: Q, planSurah: planSurah, UI: UI, DL: DL, Engine: Engine };
+
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>

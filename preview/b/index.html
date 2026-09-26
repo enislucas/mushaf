@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mushaf</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mushaf">
+<meta name="theme-color" content="#05070C">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<style>
+:root{
+  --ink0:#05070C; --ink1:#0A0F1A;
+  --text:#F2F4F8; --dim:rgba(255,255,255,.46); --faint:rgba(255,255,255,.26);
+  --hair:rgba(255,255,255,.075); --accent:#8AAEFF;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --quran:"KFGQPC Uthman Taha Naskh","Amiri","Scheherazade New","Noto Naskh Arabic",serif;
+  --pad:20px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#05070C;height:100%;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{margin:0;position:fixed;top:0;left:0;right:0;bottom:0;height:100vh;height:100dvh;overflow:hidden;
+  background:linear-gradient(180deg,#05070C 0%,#0A0F1A 100%);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.3;
+  touch-action:manipulation;-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;text-align:inherit}
+button:disabled{cursor:default}
+input{font:inherit;color:inherit;background:none;border:0;outline:none;-webkit-appearance:none;border-radius:0;-webkit-user-select:text;user-select:text}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.ar{font-family:var(--quran);direction:rtl;unicode-bidi:isolate}
+
+/* ---- stack of pages ---- */
+#stack{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
+.page{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#05070C 0%,#0A0F1A 100%);transform:translateX(0);transition:transform .34s cubic-bezier(.2,.8,.2,1)}
+.page.enter,.page.leave{transform:translateX(100%)}
+@media (prefers-reduced-motion:reduce){.page{transition:none}}
+.bar{flex:none;display:flex;align-items:center;justify-content:space-between;height:calc(44px + var(--sat));
+  padding:var(--sat) calc(12px + var(--sar)) 0 calc(10px + var(--sal))}
+.bar .back{display:flex;align-items:center;height:44px;padding:0 10px 0 6px;color:var(--dim);font-size:17px;max-width:60%}
+.bar .back span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .back svg{flex:none;width:11px;height:19px;margin-right:7px}
+.bar .act{height:44px;padding:0 8px;color:var(--dim);font-size:17px;margin-left:auto}
+.title{flex:none;padding:0 calc(var(--pad) + var(--sar)) 14px calc(var(--pad) + var(--sal))}
+.title h1{margin:0;font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.15}
+.title .sub{display:block;margin-top:5px;font-size:15px;color:var(--dim);line-height:1.3}
+.title button.sub{color:var(--dim)} .title button.sub:after{content:" \203A";color:var(--faint)}
+.body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:0 calc(var(--pad) + var(--sar)) calc(28px + var(--sab)) calc(var(--pad) + var(--sal))}
+.body.fill{overflow:hidden;display:flex;flex-direction:column;padding-bottom:var(--sab)}
+.empty{padding:40px 0;color:var(--dim);font-size:17px;text-align:center}
+
+/* ---- home grid: typography and hairlines only ---- */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr));padding-bottom:10px}
+.grid.four{grid-template-rows:repeat(2,minmax(0,1fr))}
+.tile{display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;min-width:0;min-height:0;
+  padding:18px 14px 22px 0;border-top:1px solid var(--hair)}
+.tile:nth-child(odd){border-right:1px solid var(--hair)}
+.tile:nth-child(even){padding-left:22px;padding-right:0}
+.tile:nth-child(-n+2){border-top:0}
+.tile .name{font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1.12;text-align:left}
+.tile .status{margin-top:8px;font-size:15px;color:var(--dim);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.tile.live .status{color:var(--accent)}
+.tile.blank{pointer-events:none}
+.tile:active .name{opacity:.55}
+
+/* ---- edit mode: Control-Center style list ---- */
+.edit .sizerow{display:flex;align-items:center;justify-content:space-between;height:56px;border-bottom:1px solid var(--hair)}
+.edit .sizerow .lbl{font-size:17px}
+.seg{display:flex}
+.seg button{padding:8px 16px;color:var(--dim);font-size:17px;font-variant-numeric:tabular-nums}
+.seg button.on{color:var(--text)}
+.seg button + button{border-left:1px solid var(--hair)}
+.sect{margin:28px 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.elist{position:relative}
+.erow{display:flex;align-items:center;height:56px;border-bottom:1px solid var(--hair)}
+.elist.drag .erow{position:absolute;left:0;right:0;top:0;transition:transform .18s ease}
+.erow.lift{transition:none!important;z-index:2;background:#0A0F1A;border-top:1px solid var(--hair)}
+.erow .pm{flex:none;width:40px;height:56px;display:flex;align-items:center;color:var(--dim)}
+.erow .pm:disabled{opacity:.3}
+.erow .nm{flex:1;min-width:0;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.erow .hd{flex:none;width:44px;height:56px;display:flex;align-items:center;justify-content:flex-end;color:var(--dim);touch-action:none;cursor:grab}
+.edit .hint{margin-top:22px;font-size:15px;color:var(--faint);line-height:1.4}
+
+/* ---- lists ---- */
+.search{display:flex;align-items:center;height:50px;border-bottom:1px solid var(--hair)}
+.search input{flex:1;min-width:0;height:50px;font-size:17px;padding:0}
+.search input::placeholder{color:var(--faint)}
+.search .jump{flex:none;color:var(--dim);font-size:15px;height:50px;padding-left:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.jz{padding:24px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--hair)}
+.jz.on{color:var(--accent)}
+.row{display:flex;align-items:center;width:100%;min-height:58px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.row .n{flex:none;width:38px;color:var(--dim);font-size:15px;font-variant-numeric:tabular-nums}
+.row .mid{flex:1;min-width:0}
+.row .t{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.cont .t{color:var(--dim)}
+.row .s{display:block;margin-top:2px;font-size:15px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.row .s b{font-weight:400;color:var(--accent)}
+.row .arn{flex:none;margin-left:14px;font-family:var(--quran);font-size:23px;line-height:1;direction:rtl}
+.row.cont .arn{color:var(--dim)}
+.row.off{opacity:.38}
+.row:not(.off):active{opacity:.55}
+.hide{display:none!important}
+input::-webkit-search-cancel-button,input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+
+/* ---- position picker (accordion) ---- */
+.ayahs{display:grid;grid-template-columns:repeat(7,1fr);padding:6px 0 16px;border-bottom:1px solid var(--hair)}
+.ayahs button{height:44px;font-size:17px;color:var(--dim);font-variant-numeric:tabular-nums;text-align:center}
+.ayahs button.on{color:var(--accent)}
+.ayahs button:active{color:var(--text)}
+
+/* ---- revise ---- */
+.choice{display:block;width:100%;text-align:left;padding:20px 0 18px;border-bottom:1px solid var(--hair)}
+.choice .nm{display:block;font-size:24px;font-weight:300;letter-spacing:-.01em}
+.choice .df{display:block;margin-top:6px;font-size:15px;color:var(--dim);line-height:1.4;font-variant-numeric:tabular-nums}
+.choice .df b{font-weight:400;color:var(--text)}
+.choice:active .nm{opacity:.55}
+
+/* ---- players ---- */
+.ptext{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 0}
+.artext{direction:rtl;text-align:center;font-family:var(--quran);font-size:34px;line-height:1.95;max-width:100%;word-spacing:.06em;transition:opacity .5s}
+.artext.s2{font-size:29px;line-height:1.9}
+.artext.s3{font-size:24px;line-height:1.85}
+.artext .w{transition:color .1s}
+.artext .w.now{color:var(--accent)}
+.artext .w.lead{color:var(--faint)}
+.artext .end{color:var(--faint);font-size:.62em;margin:0 .2em}
+.artext.recite{opacity:.2}
+.artext.none{font-family:var(--font);direction:ltr;font-size:17px;color:var(--dim);line-height:1.4}
+@media (prefers-reduced-motion:reduce){.artext,.artext .w{transition:none}}
+.pinfo{flex:none;text-align:center;font-size:15px;color:var(--dim);min-height:20px;font-variant-numeric:tabular-nums;padding:4px 0}
+.prog{flex:none;padding:16px 0 4px;touch-action:none}
+.prog .track{position:relative;height:2px;background:var(--hair)}
+.prog .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent)}
+.prog .times{display:flex;justify-content:space-between;margin-top:8px;font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums}
+.transport{flex:none;display:flex;align-items:center;justify-content:center;padding:4px 0 0}
+.transport button{display:flex;align-items:center;justify-content:center;width:64px;height:64px;color:var(--text)}
+.transport button:active{opacity:.5}
+.transport .play{width:88px;height:88px;margin:0 20px}
+.transport button:disabled{opacity:.3}
+.options{flex:none;display:flex;height:0;overflow:hidden;transition:height .2s ease}
+.options.show{height:50px;border-top:1px solid var(--hair)}
+.options button{flex:1;min-width:0;font-size:17px;color:var(--dim);font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+.options button.on{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.options{transition:none}}
+.pickers{flex:none;display:flex;border-top:1px solid var(--hair);margin-top:6px}
+.pickers button{flex:1;min-width:0;padding:12px 0 10px;text-align:center}
+.pickers button + button{border-left:1px solid var(--hair)}
+.pickers .lbl{display:block;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.pickers .val{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.pickers button.open .val{color:var(--accent)}
+.dl{flex:none;text-align:center;padding:12px 0 6px;font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums}
+.dl:active{color:var(--text)}
+</style>
+</head>
+<body>
+<div id="stack"></div>
+
+<script id="planner">
+/* ===== Mushaf planner: pure functions, no DOM. Tested on its own by tests/blocks.test.js. =====
+   A block is a run of whole ayat, or a run of words inside one ayah. Word blocks are cut only between words the
+   timing data can locate. Husary re-reads a few words after a breath; a cut lands at the end of the FIRST pass of
+   the last word and the next block starts at the NEXT onset of its first word, so the re-read itself is skipped and
+   every word is heard once. Positions outside the block that are still voiced inside its span ("lead-in" words) are
+   listed in `lead` so the UI can show them dimmed. */
+var Planner = (function () {
+  'use strict';
+  var MARK = /[ۖ-ۜ۞۩]/;      /* U+06D6..U+06DC, U+06DE, U+06E9: pause marks, attached to the word they follow */
+  var AUTO = { splitAbove: 16000, part: 11000, minPart: 4000, mergeWhileUnder: 8000, mergedMax: 14000, mergeCandidateMax: 16000, hardMax: 18000 };
+  var WORDS = { perBlock: 5.5, single: 7, markBonus: 1.5 };
+
+  function hasMark(w) { return MARK.test(w || ''); }
+
+  /* Time-ordered segments, positions clamped to the word count (the ayah-end sign folds into the last word). */
+  function orderedSegs(verse, nW) {
+    var from = verse[0], to = verse[1], raw = verse[2] || [], out = [], i;
+    for (i = 0; i < raw.length; i++) {
+      var s = Math.max(from, Math.min(to, raw[i][1])), e = Math.max(from, Math.min(to, raw[i][2]));
+      if (e > s) out.push([Math.max(1, Math.min(raw[i][0], nW)), s, e]);
+    }
+    out.sort(function (a, b) { return a[1] - b[1] || a[0] - b[0]; });
+    return out;
+  }
+  /* End of the first segment of word p starting at or after t0; start of the first segment of word p at or after t0. */
+  function endOf(segs, p, t0) { for (var i = 0; i < segs.length; i++) if (segs[i][0] === p && segs[i][1] >= t0 - 1) return segs[i][2]; return null; }
+  function startOf(segs, p, t0) { for (var i = 0; i < segs.length; i++) if (segs[i][0] === p && segs[i][1] >= t0 - 1) return segs[i][1]; return null; }
+
+  /* Candidate cut points of an ayah: boundary after word p, with the time the first pass of p ends. */
+  function ayahCuts(verse, words) {
+    var nW = words.length, segs = orderedSegs(verse, nW), cuts = [], p;
+    for (p = 1; p < nW; p++) {
+      var t = endOf(segs, p, verse[0]); if (t === null) continue;
+      var t2 = startOf(segs, p + 1, t); if (t2 === null) t2 = t;   /* next word unlocated: the next block simply starts here */
+      if (t <= verse[0] || t2 >= verse[1]) continue;
+      cuts.push({ p: p, t: t, t2: t2, mark: hasMark(words[p - 1]) });
+    }
+    return cuts;
+  }
+
+  function block(s, a1, a2, w1, w2, from, to, partial) {
+    return { s: s, a1: a1, a2: a2, w1: w1, w2: w2, from: from, to: to, dur: to - from, partial: !!partial, lead: [] };
+  }
+
+  /* Split one ayah at the given word boundaries (ascending p). A cut the audio cannot honour is dropped (its words join the next block). */
+  function splitAyah(s, a, verse, words, cutPs) {
+    var nW = words.length, segs = orderedSegs(verse, nW), out = [], prevP = 0, from = verse[0], i, k;
+    for (i = 0; i < cutPs.length; i++) {
+      var p = cutPs[i]; if (p <= prevP || p >= nW) continue;
+      var to = endOf(segs, p, from); if (to === null) continue;
+      var next = startOf(segs, p + 1, to); if (next === null) next = to;
+      out.push(block(s, a, a, prevP + 1, p, from, to, true)); prevP = p; from = next;
+    }
+    out.push(block(s, a, a, prevP + 1, nW, from, verse[1], out.length > 0));
+    for (i = 0; i < out.length; i++) {           /* words voiced inside the span but outside the block: lead-in of a re-read */
+      var b = out[i], seen = {};
+      for (k = 0; k < segs.length; k++) if (segs[k][1] >= b.from && segs[k][1] < b.to && (segs[k][0] < b.w1 || segs[k][0] > b.w2) && !seen[segs[k][0]]) { seen[segs[k][0]] = 1; b.lead.push(segs[k][0]); }
+    }
+    return out;
+  }
+
+  /* Best partition of one ayah: exact dynamic programme over the candidate cuts, minimising the sum of cost(block). */
+  function bestSplit(s, a, verse, words, cost) {
+    var nW = words.length, segs = orderedSegs(verse, nW), cuts = ayahCuts(verse, words), N = cuts.length, i, j;
+    var best = new Array(N + 2), prev = new Array(N + 2);
+    for (j = 0; j <= N + 1; j++) { best[j] = Infinity; prev[j] = -1; }
+    best[0] = 0;
+    for (j = 1; j <= N + 1; j++) {
+      var pHi = j === N + 1 ? nW : cuts[j - 1].p, last = j === N + 1;
+      for (i = 0; i < j; i++) {
+        if (best[i] === Infinity) continue;
+        var from = i === 0 ? verse[0] : cuts[i - 1].t2, pLo = i === 0 ? 1 : cuts[i - 1].p + 1;
+        var to = last ? verse[1] : endOf(segs, pHi, from);
+        if (to === null || to <= from) continue;
+        var c = best[i] + cost(to - from, pHi - pLo + 1, !last && cuts[j - 1].mark, last);
+        if (c < best[j]) { best[j] = c; prev[j] = i; }
+      }
+    }
+    var chosen = [];
+    for (j = prev[N + 1]; j > 0; j = prev[j]) chosen.unshift(cuts[j - 1].p);
+    return splitAyah(s, a, verse, words, chosen);
+  }
+  /* Auto: aim at 11 s; anything under 4 s or over 18 s is (almost) forbidden; short blocks and cuts off a pause mark cost extra. */
+  function autoCost(d, n, mark, last) {
+    if (d < AUTO.minPart) return 1000 + (AUTO.minPart - d) / 100;
+    if (d > AUTO.hardMax) return 1000 + (d - AUTO.hardMax) / 100;
+    var x = (d - AUTO.part) / 1000;
+    return x * x + (n < 3 ? 20 : 0) - (mark ? 2 : 0);
+  }
+  /* Words: aim at 5-6 words, never one. */
+  function wordsCost(d, n, mark, last) {
+    if (n < 2) return 1000;
+    var x = n - WORDS.perBlock;
+    return x * x - (mark ? WORDS.markBonus : 0);
+  }
+
+  /* mode: 'ayah' | 'ayat2' | 'ayat3' | 'words' | 'auto'.  words = words[s]; verses = timings[s].v */
+  function planBlocks(mode, s, words, verses) {
+    var n = verses.length, out = [], i, j, d;
+    function dur(k) { return verses[k][1] - verses[k][0]; }
+    function whole(a1, a2) { return block(s, a1, a2, 1, words[a2 - 1].length, verses[a1 - 1][0], verses[a2 - 1][1], false); }
+
+    if (mode === 'ayah' || mode === 'ayat2' || mode === 'ayat3') {
+      var size = mode === 'ayah' ? 1 : (mode === 'ayat2' ? 2 : 3);
+      for (i = 0; i < n; i += size) out.push(whole(i + 1, Math.min(n, i + size)));
+    } else if (mode === 'words') {
+      for (i = 0; i < n; i++) {
+        var nW = words[i].length;
+        if (nW <= WORDS.single) { out.push(whole(i + 1, i + 1)); continue; }
+        out.push.apply(out, bestSplit(s, i + 1, verses[i], words[i], wordsCost));
+      }
+    } else {                                                  /* auto */
+      i = 0;
+      while (i < n) {
+        d = dur(i);
+        if (d > AUTO.splitAbove) { out.push.apply(out, bestSplit(s, i + 1, verses[i], words[i], autoCost)); i++; continue; }
+        j = i;
+        while (j + 1 < n && dur(j + 1) <= AUTO.mergeCandidateMax && d < AUTO.mergeWhileUnder && d + dur(j + 1) <= AUTO.mergedMax) { d += dur(j + 1); j++; }
+        if (d < AUTO.minPart && j + 1 < n && dur(j + 1) <= AUTO.mergeCandidateMax && d + dur(j + 1) <= AUTO.hardMax) { d += dur(j + 1); j++; }
+        out.push(whole(i + 1, j + 1));
+        i = j + 1;
+      }
+    }
+    for (i = 0; i < out.length; i++) { out[i].k = i + 1; out[i].n = out.length; }
+    return out;
+  }
+
+  /* Index of the block that contains ayah a (and word w). */
+  function blockIndexFor(blocks, a, w) {
+    var i; w = w || 1;
+    for (i = 0; i < blocks.length; i++) { var b = blocks[i]; if (a >= b.a1 && a <= b.a2 && (b.a1 !== b.a2 || (w >= b.w1 && w <= b.w2))) return i; }
+    for (i = 0; i < blocks.length; i++) if (blocks[i].a1 >= a) return i;
+    return Math.max(0, blocks.length - 1);
+  }
+
+  /* Word position under the play head (ms in file time), from the ayah's segments. 0 = none yet. */
+  function wordAt(verse, nW, ms) {
+    var segs = verse[2] || [], i, best = -1;
+    for (i = 0; i < segs.length; i++) if (ms >= segs[i][1] && ms < segs[i][2]) return Math.min(nW, Math.max(1, segs[i][0]));
+    for (i = 0; i < segs.length; i++) if (segs[i][1] <= ms && (best < 0 || segs[i][1] >= segs[best][1])) best = i;
+    return best >= 0 ? Math.min(nW, Math.max(1, segs[best][0])) : 0;
+  }
+
+  /* Index (0-based) of the ayah whose window contains ms. */
+  function ayahAt(verses, ms) {
+    var lo = 0, hi = verses.length - 1;
+    while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (verses[mid][0] <= ms) lo = mid; else hi = mid - 1; }
+    return lo;
+  }
+
+  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, ayahCuts: ayahCuts, bestSplit: bestSplit, wordAt: wordAt, ayahAt: ayahAt, hasMark: hasMark, AUTO: AUTO, WORDS: WORDS, MARK: MARK };
+})();
+if (typeof module !== 'undefined') module.exports = Planner;
+</script>
+
+<script>
+(function () {
+'use strict';
+var BASE = '../../';                       /* the integrator changes this to './' */
+var AUDIO_CACHE = 'mushaf-audio-v1';
+var QURAN_SPEEDS = [0.5, 0.75, 1, 1.25], LECTURE_SPEEDS = [0.75, 1, 1.25, 1.5];
+var PAUSES = [0.75, 1, 1.25, 1.5], REPEATS = [1, 2, 3, 0];   /* 0 = infinite */
+var MODES = [['ayah', 'Ayah'], ['ayat2', '2 ayat'], ['ayat3', '3 ayat'], ['words', 'Words'], ['auto', 'Auto']];
+var SOURCES = [['murattal', 'Murattal'], ['muallim', 'Muallim']];
+var TILES = {
+  memorize: 'Memorise', revise: 'Revise', husary: 'Quran · Husary', reciters: 'Recitations',
+  sharh: 'Sharh Usul ath-Thalatha', hadith: 'Hadith', podcasts: 'Podcasts'
+};
+var TILE_ORDER = ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith', 'podcasts'];
+var COLLECTIONS = { sharh: 'content/sharh.json', hadith: 'content/hadith.json', podcasts: 'content/podcasts.json', reciters: 'content/reciters.json' };
+var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- small helpers ---------- */
+var store = {
+  get: function (k, d) { try { var v = localStorage.getItem('mushaf.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set: function (k, v) { try { localStorage.setItem('mushaf.' + k, JSON.stringify(v)); } catch (e) {} },
+  del: function (k) { try { localStorage.removeItem('mushaf.' + k); } catch (e) {} }
+};
+function el(tag, attrs, children) {
+  var e = document.createElement(tag), k, i;
+  if (attrs) for (k in attrs) {
+    if (k === 'class') e.className = attrs[k];
+    else if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'html') e.innerHTML = attrs[k];
+    else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), attrs[k]);
+    else if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+  }
+  if (children) for (i = 0; i < children.length; i++) if (children[i] !== null && children[i] !== undefined) e.appendChild(typeof children[i] === 'string' ? document.createTextNode(children[i]) : children[i]);
+  return e;
+}
+function svg(html, w, h) { var s = el('span', { class: 'ico', html: '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '" aria-hidden="true">' + html + '</svg>' }); return s.firstChild; }
+var ICON = {
+  chevron: function () { return svg('<path d="M9.5 1.5 1.5 9.5l8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', 11, 19); },
+  play: function () { return svg('<path d="M9 5v22l19-11z" fill="currentColor"/>', 32, 32); },
+  pause: function () { return svg('<path d="M10 6h3.6v20H10zM18.4 6H22v20h-3.6z" fill="currentColor"/>', 32, 32); },
+  prev: function () { return svg('<path d="M9 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M23 7.5 11.5 16 23 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>', 32, 32); },
+  next: function () { return svg('<path d="M23 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M9 7.5 20.5 16 9 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>', 32, 32); },
+  back15: function () { return svg('<path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="19.6" text-anchor="middle" font-size="8.5" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text>', 32, 32); },
+  fwd15: function () { return svg('<path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="19.6" text-anchor="middle" font-size="8.5" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text>', 32, 32); },
+  minus: function () { return svg('<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>', 24, 24); },
+  plus: function () { return svg('<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9M12 7.5v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>', 24, 24); },
+  handle: function () { return svg('<path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>', 24, 24); }
+};
+var AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+function arNum(n) { return String(n).replace(/\d/g, function (d) { return AR_DIGITS[+d]; }); }
+function mmss(sec) { sec = Math.max(0, Math.floor(sec || 0)); var m = Math.floor(sec / 60), s = sec % 60; if (m >= 60) return Math.floor(m / 60) + ':' + String(m % 60).replace(/^(\d)$/, '0$1') + ':' + String(s).replace(/^(\d)$/, '0$1'); return m + ':' + (s < 10 ? '0' : '') + s; }
+function speedLabel(x) { return (x === 1 ? '1' : String(x)) + '×'; }
+function modeLabel(m) { for (var i = 0; i < MODES.length; i++) if (MODES[i][0] === m) return MODES[i][1]; return m; }
+function sourceLabel(s) { for (var i = 0; i < SOURCES.length; i++) if (SOURCES[i][0] === s) return SOURCES[i][1]; return s; }
+
+/* ---------- data ---------- */
+var D = { meta: null, words: null, timings: {}, content: {} };
+function loadJSON(path) { return fetch(BASE + path).then(function (r) { if (!r.ok) throw new Error(path + ' ' + r.status); return r.json(); }); }
+function timings(source) {
+  if (D.timings[source]) return Promise.resolve(D.timings[source]);
+  return loadJSON(source === 'muallim' ? 'quran/husary-muallim-timings.json' : 'quran/husary-timings.json').then(function (t) { D.timings[source] = t; return t; });
+}
+function content(id) {
+  if (D.content[id]) return Promise.resolve(D.content[id]);
+  return loadJSON(COLLECTIONS[id]).then(function (c) { D.content[id] = c; return c; });
+}
+function surah(n) { return D.meta.surahs[n - 1]; }
+function key(s, a) { return s + ':' + a; }
+function parseKey(k) { var p = k.split(':'); return [+p[0], +p[1]]; }
+function before(s, a, s2, a2) { return s < s2 || (s === s2 && a < a2); }
+function pageOf(s, a) { var ps = D.meta.pageStarts, lo = 0, hi = ps.length - 1; while (lo < hi) { var mid = (lo + hi + 1) >> 1, k = parseKey(ps[mid]); if (!before(s, a, k[0], k[1])) lo = mid; else hi = mid - 1; } return lo + 1; }
+function juzOf(s, a) { var js = D.meta.juzStarts, j = 0; for (var i = 0; i < js.length; i++) { var k = parseKey(js[i]); if (!before(s, a, k[0], k[1])) j = i; } return j + 1; }
+function prevAyah(s, a) { return a > 1 ? [s, a - 1] : (s > 1 ? [s - 1, surah(s - 1).ayahs] : [1, 1]); }
+function pageEnd(p) { if (p >= 604) return [114, 6]; var k = parseKey(D.meta.pageStarts[p]); return prevAyah(k[0], k[1]); }   /* last ayah of page p */
+function juzEnd(j) { if (j >= 30) return [114, 6]; var k = parseKey(D.meta.juzStarts[j]); return prevAyah(k[0], k[1]); }
+function rangeQueue(s1, a1, s2, a2) {           /* [{s, a1, a2}] covering s1:a1 .. s2:a2 inclusive */
+  var q = [], s;
+  for (s = s1; s <= s2; s++) q.push({ s: s, a1: s === s1 ? a1 : 1, a2: s === s2 ? a2 : surah(s).ayahs });
+  return q;
+}
+
+/* ---------- audio engine: one element for the life of the page ---------- */
+var Engine = (function () {
+  var a = null, unlocked = false, token = 0, interval = null, raf = 0, range = null, selfPause = false, blobUrl = null, handlers = {}, owner = null;
+  function emit(ev, x) { var l = handlers[ev] || []; for (var i = 0; i < l.length; i++) l[i](x); }
+  function on(ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); }
+  function silentWav() {
+    var n = 1600, buf = new ArrayBuffer(44 + n), v = new DataView(buf), i;
+    function str(o, s) { for (var k = 0; k < s.length; k++) v.setUint8(o + k, s.charCodeAt(k)); }
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (i = 0; i < n; i++) v.setUint8(44 + i, 0);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
+  function element() {
+    if (a) return a;
+    a = document.createElement('audio');
+    a.preload = 'auto'; a.setAttribute('playsinline', ''); a.setAttribute('webkit-playsinline', '');
+    try { a.preservesPitch = true; a.webkitPreservesPitch = true; } catch (e) {}
+    a.addEventListener('ended', function () { var r = range; range = null; stopWatch(); if (r && r.onEnd) r.onEnd('ended'); else emit('ended'); });
+    a.addEventListener('pause', function () { if (selfPause) { selfPause = false; return; } if (range) { range = null; stopWatch(); emit('interrupted'); } });
+    a.addEventListener('timeupdate', tick);
+    a.addEventListener('error', function () { emit('error', a.error); });
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    return a;
+  }
+  /* Called inside the first tap: play a silent clip so iOS marks this element as user-started. */
+  function unlock() {
+    var x = element(); if (unlocked) return; unlocked = true;
+    if (x.getAttribute('data-url')) return;
+    x.src = silentWav();
+    var p = x.play();
+    if (p && p.then) p.then(function () { if (!x.getAttribute('data-url')) { selfPause = true; x.pause(); } }, function (err) { if (err && err.name === 'NotAllowedError') unlocked = false; });
+  }
+  function cachedSrc(url) {
+    if (!('caches' in window)) return Promise.resolve(url);
+    return caches.open(AUDIO_CACHE).then(function (c) { return c.match(url); }).then(function (r) {
+      if (!r) return url;
+      return r.blob().then(function (b) { if (blobUrl) URL.revokeObjectURL(blobUrl); blobUrl = URL.createObjectURL(b); return blobUrl; });
+    }).catch(function () { return url; });
+  }
+  function waitReady(x, timeout) {
+    return new Promise(function (res, rej) {
+      if (x.readyState >= 1) return res();
+      var done = false, t;
+      function ok() { if (done) return; done = true; clearTimeout(t); x.removeEventListener('loadedmetadata', ok); x.removeEventListener('error', bad); res(); }
+      function bad() { if (done) return; done = true; clearTimeout(t); x.removeEventListener('loadedmetadata', ok); x.removeEventListener('error', bad); rej(new Error('audio failed to load')); }
+      x.addEventListener('loadedmetadata', ok); x.addEventListener('error', bad);
+      t = setTimeout(bad, timeout || 30000);
+    });
+  }
+  function load(url) {
+    var x = element();
+    if (x.getAttribute('data-url') === url && x.readyState >= 1 && !x.error) return Promise.resolve();
+    if (x.getAttribute('data-url') === url && !x.error) return waitReady(x);
+    return cachedSrc(url).then(function (src) { x.setAttribute('data-url', url); x.src = src; x.load(); return waitReady(x); });
+  }
+  function seek(t) {
+    var x = element();
+    return new Promise(function (res) {
+      if (Math.abs(x.currentTime - t) < 0.03) return res();
+      var done = false, tm;
+      function fin() { if (done) return; done = true; clearTimeout(tm); x.removeEventListener('seeked', fin); res(); }
+      x.addEventListener('seeked', fin);
+      try { x.currentTime = t; } catch (e) { fin(); return; }
+      tm = setTimeout(fin, 2500);       /* never assume the seek landed; but never hang either */
+    });
+  }
+  function startWatch() { stopWatch(); interval = setInterval(tick, 40); if (!document.hidden) frame(); }
+  function frame() { if (!range) return; tick(); raf = requestAnimationFrame(frame); }
+  function stopWatch() { if (interval) clearInterval(interval); interval = null; if (raf) cancelAnimationFrame(raf); raf = 0; }
+  function tick() {
+    if (!range || !a) return;
+    if (a.currentTime >= range.to - 0.02) {
+      var r = range; range = null; stopWatch(); selfPause = true; a.pause();
+      if (r.onEnd) r.onEnd('end');
+    }
+  }
+  /* Play [from, to) seconds of url; to = Infinity plays to the end. Resolves true when playback started, false when superseded. */
+  function playRange(url, from, to, onEnd) {
+    var my = ++token, x = element();
+    range = null; stopWatch();
+    return load(url).then(function () {
+      if (my !== token) return false;
+      return seek(from).then(function () {
+        if (my !== token) return false;
+        if (Math.abs(x.currentTime - from) > 0.75) return seek(from);    /* one retry if the first seek landed elsewhere */
+      });
+    }).then(function (r) {
+      if (my !== token || r === false) return false;
+      range = { from: from, to: to, onEnd: onEnd, token: my };
+      var p = x.play();
+      startWatch();
+      if (!p || !p.then) return true;
+      return p.then(function () { return my === token; }, function (err) { if (my === token) { range = null; stopWatch(); emit('blocked', err); } return false; });
+    }, function (err) { if (my === token) emit('error', err); return false; });
+  }
+  function pause() { token++; range = null; stopWatch(); if (a && !a.paused) { selfPause = true; a.pause(); } }
+  function stop() { pause(); }
+  function setRate(r) { var x = element(); x.playbackRate = r; x.defaultPlaybackRate = r; }
+  function time() { return a ? a.currentTime : 0; }
+  function duration() { return a && isFinite(a.duration) ? a.duration : 0; }
+  function paused() { return !a || a.paused; }
+  function url() { return a ? a.getAttribute('data-url') : null; }
+  function setOwner(o) { owner = o; }
+  function session(meta) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: meta.title || '', artist: meta.artist || '', album: meta.album || 'Mushaf' });
+    } catch (e) {}
+  }
+  function sessionState(playing) { if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'; } catch (e) {} } }
+  if ('mediaSession' in navigator) {
+    var acts = { play: 'toggle', pause: 'toggle', previoustrack: 'prev', nexttrack: 'next', seekbackward: 'back', seekforward: 'fwd' };
+    Object.keys(acts).forEach(function (k) { try { navigator.mediaSession.setActionHandler(k, function () { if (owner && owner[acts[k]]) owner[acts[k]](); }); } catch (e) {} });
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && range) { tick(); if (range) frame(); } });
+  return { unlock: unlock, playRange: playRange, pause: pause, stop: stop, setRate: setRate, time: time, duration: duration, paused: paused, url: url, on: on, session: session, sessionState: sessionState, setOwner: setOwner, element: element, check: tick };
+})();
+
+/* ---------- offline downloads ---------- */
+var Offline = {
+  has: function (url) { if (!('caches' in window)) return Promise.resolve(false); return caches.open(AUDIO_CACHE).then(function (c) { return c.match(url); }).then(function (r) { return !!r; }).catch(function () { return false; }); },
+  download: function (url, onProgress) {
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var total = +res.headers.get('content-length') || 0;
+      if (!res.body || !res.body.getReader) return res.blob();
+      var reader = res.body.getReader(), chunks = [], got = 0;
+      return new Promise(function (resolve, reject) {
+        function pump() {
+          reader.read().then(function (r) {
+            if (r.done) { resolve(new Blob(chunks, { type: 'audio/mpeg' })); return; }
+            chunks.push(r.value); got += r.value.length; if (onProgress) onProgress(total ? got / total : 0);
+            pump();
+          }, reject);
+        }
+        pump();
+      });
+    }).then(function (blob) {
+      return caches.open(AUDIO_CACHE).then(function (c) {
+        return c.put(url, new Response(blob, { status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Content-Length': String(blob.size), 'Accept-Ranges': 'bytes' } }));
+      });
+    });
+  },
+  remove: function (url) { return caches.open(AUDIO_CACHE).then(function (c) { return c.delete(url); }); }
+};
+
+/* ---------- navigation: a stack of full-screen pages ---------- */
+var Nav = (function () {
+  var root = document.getElementById('stack'), pages = [];
+  function current() { return pages[pages.length - 1]; }
+  function build(spec) {
+    var page = { spec: spec, el: el('section', { class: 'page', 'data-id': spec.id }), body: null, dead: false };
+    var bar = el('div', { class: 'bar' });
+    if (pages.length) {
+      var parent = pages[pages.length - 1].spec;
+      bar.appendChild(el('button', { class: 'back', 'aria-label': 'Back', onclick: function () { Nav.pop(); } }, [ICON.chevron(), el('span', { text: parent.shortTitle || parent.title })]));
+    }
+    if (spec.action) {
+      page.actionBtn = el('button', { class: 'act', text: spec.action.label, onclick: function () { spec.action.onTap(page); } });
+      bar.appendChild(page.actionBtn);
+    }
+    page.el.appendChild(bar);
+    var title = el('div', { class: 'title' }, [el('h1', { text: spec.title })]);
+    if (spec.sub) { page.subEl = spec.onSub ? el('button', { class: 'sub', text: spec.sub, onclick: function () { spec.onSub(page); } }) : el('span', { class: 'sub', text: spec.sub }); title.appendChild(page.subEl); }
+    page.el.appendChild(title);
+    page.body = el('div', { class: 'body' + (spec.fill ? ' fill' : '') });
+    page.el.appendChild(page.body);
+    page.setTitle = function (t) { title.firstChild.textContent = t; };
+    page.setSub = function (t) { if (page.subEl) page.subEl.textContent = t; };
+    page.setAction = function (t) { if (page.actionBtn) page.actionBtn.textContent = t; };
+    page.ctl = spec.build(page.body, page) || {};
+    return page;
+  }
+  function push(spec) {
+    var page = build(spec);
+    if (pages.length && !reduceMotion) page.el.classList.add('enter');
+    root.appendChild(page.el);
+    pages.push(page);
+    if (page.el.classList.contains('enter')) { page.el.getBoundingClientRect(); requestAnimationFrame(function () { page.el.classList.remove('enter'); }); }
+    try { history.pushState({ depth: pages.length - 1 }, ''); } catch (e) {}
+    if (page.ctl.onShow) page.ctl.onShow();
+    return page;
+  }
+  function remove(page) {
+    if (page.dead) return; page.dead = true;
+    if (page.ctl.onHide) page.ctl.onHide();
+    if (page.ctl.destroy) page.ctl.destroy();
+    var fin = function () { if (page.el.parentNode) page.el.parentNode.removeChild(page.el); };
+    if (reduceMotion) fin(); else { page.el.classList.add('leave'); setTimeout(fin, 380); }
+  }
+  function popTo(depth) {
+    while (pages.length - 1 > depth && pages.length > 1) { var p = pages.pop(); remove(p); }
+    var top = current(); if (top && top.ctl.onShow) top.ctl.onShow();
+  }
+  function pop() {
+    if (pages.length <= 1) return;
+    var want = pages.length - 2;
+    try { history.back(); } catch (e) {}
+    setTimeout(function () { if (pages.length - 1 > want) popTo(want); }, 350);   /* if no popstate arrives, pop anyway */
+  }
+  window.addEventListener('popstate', function (ev) {
+    var depth = ev.state && typeof ev.state.depth === 'number' ? ev.state.depth : 0;
+    if (depth < pages.length - 1) popTo(depth);
+    else if (depth > pages.length - 1) { try { history.replaceState({ depth: pages.length - 1 }, ''); } catch (e) {} }
+  });
+  return { push: push, pop: pop, popTo: popTo, current: current, depth: function () { return pages.length - 1; }, pages: pages };
+})();
+
+/* ---------- Quran text rendering ---------- */
+function renderWords(box, s, a1, a2, w1, w2, lead) {
+  var words = D.words[String(s)], a, p, spans = {}, count = 0;
+  box.textContent = '';
+  function add(a, p, cls) { var sp = el('span', { class: 'w' + (cls ? ' ' + cls : ''), text: words[a - 1][p - 1], 'data-a': a, 'data-p': p }); spans[a + ':' + p] = sp; box.appendChild(sp); box.appendChild(document.createTextNode(' ')); count++; }
+  lead = lead || [];
+  for (a = a1; a <= a2; a++) {
+    var nW = words[a - 1].length, from = a === a1 ? w1 : 1, to = a === a2 ? w2 : nW;
+    if (a1 === a2) for (p = 0; p < lead.length; p++) if (lead[p] < from) add(a, lead[p], 'lead');
+    for (p = from; p <= to; p++) add(a, p);
+    if (a1 === a2) for (p = 0; p < lead.length; p++) if (lead[p] > to) add(a, lead[p], 'lead');
+    if (to === nW) box.appendChild(el('span', { class: 'end', text: '﴿' + arNum(a) + '﴾' }));
+  }
+  box.className = 'artext' + (count > 42 ? ' s3' : count > 22 ? ' s2' : '');
+  return spans;
+}
+function highlight(spans, a, p, current) {
+  var k = a + ':' + p;
+  if (current.key === k) return current;
+  if (current.el) current.el.classList.remove('now');
+  var sp = spans[k]; if (sp) sp.classList.add('now');
+  return { key: k, el: sp || null };
+}
+
+/* ---------- memorisation controller ---------- */
+var Memo = (function () {
+  var st = store.get('memo', null) || { s: 114, a: 1, w: 1, speed: 1, pause: 1, repeat: 2, mode: 'auto', source: 'murattal' };
+  var phase = 'idle', plan = [], planKey = '', idx = 0, rep = 1, T = null, blockWall = 0, pauseEndsAt = 0, pauseTimer = null, resumeAt = null, subs = [], error = null;
+  function save() { store.set('memo', st); }
+  function notify() { for (var i = 0; i < subs.length; i++) subs[i](); }
+  function clearTimers() { if (pauseTimer) clearTimeout(pauseTimer); pauseTimer = null; }
+  function planFor(s) {
+    return timings(st.source).then(function (t) {
+      T = t; plan = Planner.planBlocks(st.mode, s, D.words[String(s)], t[String(s)].v); planKey = s + '/' + st.mode + '/' + st.source;
+    });
+  }
+  function ensurePlan() {
+    if (plan.length && planKey === st.s + '/' + st.mode + '/' + st.source) return Promise.resolve();
+    return planFor(st.s).then(function () { idx = Planner.blockIndexFor(plan, st.a, st.w); });
+  }
+  function syncPos() { var b = plan[idx]; if (b) { st.s = b.s; st.a = b.a1; st.w = b.a1 === b.a2 ? b.w1 : 1; save(); } }
+  function url() { return T[String(st.s)].url; }
+  function playBlock(fromSec) {
+    var b = plan[idx]; if (!b) return;
+    clearTimers(); Listener.yieldTo(Memo); error = null;
+    phase = 'playing'; blockWall = Date.now(); notify();
+    Engine.setOwner(Memo); Engine.setRate(st.speed);
+    Engine.session({ title: surah(st.s).name + ' · ' + (b.a1 === b.a2 ? 'Ayah ' + b.a1 : 'Ayat ' + b.a1 + '–' + b.a2), artist: 'Husary · ' + sourceLabel(st.source), album: 'Memorise' });
+    Engine.sessionState(true);
+    Engine.playRange(url(), fromSec !== null && fromSec !== undefined ? fromSec : b.from / 1000, b.to / 1000, onBlockEnd).then(function (ok) {
+      if (ok === false && phase === 'playing' && Engine.paused()) { /* superseded: another call owns the engine now */ }
+    });
+  }
+  function onBlockEnd() {
+    if (phase !== 'playing') return;
+    var elapsed = Date.now() - blockWall, ms = Math.max(400, Math.round(elapsed * st.pause));
+    phase = 'pausing'; pauseEndsAt = Date.now() + ms; resumeAt = null;
+    pauseTimer = setTimeout(afterPause, ms);
+    Engine.sessionState(false); notify();
+  }
+  function afterPause() {
+    clearTimers(); if (phase !== 'pausing') return;
+    if (st.repeat === 0 || rep < st.repeat) { rep++; playBlock(); } else { rep = 1; advance(); }
+  }
+  function advance() { if (idx + 1 < plan.length) { idx++; syncPos(); playBlock(); } else nextSurah(); }
+  function nextSurah() {
+    var s = st.s - 1;
+    if (s < 1) { phase = 'done'; Engine.sessionState(false); notify(); return; }
+    st.s = s; save();
+    planFor(s).then(function () { idx = 0; rep = 1; syncPos(); playBlock(); });
+  }
+  function prevSurah() {
+    var s = st.s + 1; if (s > 114) { playBlock(); return; }
+    st.s = s; save();
+    planFor(s).then(function () { idx = plan.length - 1; rep = 1; syncPos(); playBlock(); });
+  }
+  var api = {
+    st: st, on: function (fn) { subs.push(fn); return function () { subs = subs.filter(function (f) { return f !== fn; }); }; },
+    ensurePlan: ensurePlan,
+    state: function () { return { phase: phase, plan: plan, idx: idx, block: plan[idx] || null, rep: rep, pauseLeft: phase === 'pausing' ? Math.max(0, pauseEndsAt - Date.now()) : 0, T: T, error: error }; },
+    setPosition: function (s, a, w) {
+      var wasLive = phase === 'playing' || phase === 'pausing';
+      clearTimers(); if (wasLive) Engine.stop();
+      st.s = s; st.a = a; st.w = w || 1; save(); plan = []; planKey = '';
+      return ensurePlan().then(function () { rep = 1; resumeAt = null; syncPos(); if (wasLive) playBlock(); else { phase = 'idle'; notify(); } });
+    },
+    set: function (k, v) {
+      st[k] = v; save();
+      if (k === 'speed') { if (phase === 'playing') Engine.setRate(v); notify(); return; }
+      if (k === 'mode' || k === 'source') {
+        var wasLive = phase === 'playing' || phase === 'pausing';
+        clearTimers(); if (wasLive) Engine.stop();
+        plan = []; planKey = '';
+        ensurePlan().then(function () { rep = 1; resumeAt = null; syncPos(); if (wasLive) playBlock(); else { if (phase !== 'idle') phase = 'paused'; notify(); } });
+        return;
+      }
+      notify();
+    },
+    toggle: function () {
+      if (phase === 'playing') { resumeAt = Engine.time(); Engine.pause(); phase = 'paused'; Engine.sessionState(false); notify(); return; }
+      if (phase === 'pausing') { clearTimers(); phase = 'paused'; resumeAt = null; notify(); return; }
+      ensurePlan().then(function () {
+        var b = plan[idx]; if (!b) return;
+        var t = (resumeAt !== null && resumeAt >= b.from / 1000 && resumeAt < b.to / 1000 - 0.15 && Engine.url() === url()) ? resumeAt : null;
+        resumeAt = null; playBlock(t);
+      });
+    },
+    next: function () { clearTimers(); rep = 1; resumeAt = null; ensurePlan().then(function () { if (idx + 1 < plan.length) { idx++; syncPos(); playBlock(); } else nextSurah(); }); },
+    prev: function () { clearTimers(); rep = 1; resumeAt = null; ensurePlan().then(function () { if (idx > 0) { idx--; syncPos(); playBlock(); } else prevSurah(); }); },
+    stop: function () { clearTimers(); if (phase === 'playing') Engine.stop(); if (phase !== 'idle' && phase !== 'done') phase = 'paused'; notify(); },
+    isLive: function () { return phase === 'playing' || phase === 'pausing'; }
+  };
+  Engine.on('interrupted', function () { if (phase === 'playing') { resumeAt = Engine.time(); phase = 'paused'; notify(); } });
+  Engine.on('blocked', function () { if (phase === 'playing') { phase = 'paused'; error = 'Tap play to start'; notify(); } });
+  Engine.on('error', function () { if (phase === 'playing') { phase = 'paused'; error = 'Audio unavailable — check the connection or download the surah'; notify(); } });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (phase === 'pausing' && Date.now() >= pauseEndsAt) afterPause();      /* iOS froze the timer: recompute from wall time */
+    else if (phase === 'playing') Engine.check();                            /* the audio clock, not a counter, decides */
+  });
+  return api;
+})();
+
+/* ---------- listening controller (Husary continuous, revision, reciters, collections) ---------- */
+var Listener = (function () {
+  var item = null, phase = 'idle', subs = [], saveTimer = null, resumeAt = null, error = null;
+  function notify() { for (var i = 0; i < subs.length; i++) subs[i](); }
+  function isQuran() { return item && item.kind === 'quran'; }
+  function cur() { return isQuran() ? item.queue[item.qi] : null; }
+  function verses() { return isQuran() ? D.timings.murattal[String(cur().s)].v : null; }
+  function itemUrl() { return isQuran() ? D.timings.murattal[String(cur().s)].url : item.url; }
+  function endSec() { if (!isQuran()) return Infinity; var q = cur(), v = verses(); return q.a2 >= v.length ? Infinity : v[q.a2 - 1][1] / 1000; }
+  function speeds() { return item && item.lecture ? LECTURE_SPEEDS : QURAN_SPEEDS; }
+  function speed() { var s = store.get(item && item.lecture ? 'speed.lecture' : 'speed.quran', 1); return speeds().indexOf(s) >= 0 ? s : 1; }
+  function meta() {
+    if (isQuran()) { var q = cur(); return { title: surah(q.s).name, artist: 'Mahmoud Khalil al-Husary', album: item.album || 'Quran' }; }
+    return { title: item.title, artist: item.artist || item.album || '', album: item.album || 'Mushaf' };
+  }
+  function start(fromSec) {
+    error = null; Memo.stop(); Engine.setOwner(Listener); Engine.setRate(speed());
+    Engine.session(meta()); Engine.sessionState(true);
+    phase = 'playing'; notify();
+    Engine.playRange(itemUrl(), fromSec, endSec(), onEnd);
+    startSaving();
+  }
+  function onEnd() {
+    savePos(true);
+    if (isQuran() && item.qi + 1 < item.queue.length) { item.qi++; var q = cur(); start(verses()[q.a1 - 1][0] / 1000); return; }
+    phase = 'ended'; stopSaving(); Engine.sessionState(false); notify();
+  }
+  function startSaving() { stopSaving(); saveTimer = setInterval(function () { savePos(false); }, 2000); }
+  function stopSaving() { if (saveTimer) clearInterval(saveTimer); saveTimer = null; }
+  function savePos(final) {
+    if (!item) return;
+    var t = Engine.time();
+    if (isQuran()) {
+      var q = cur(), v = verses(), i = Planner.ayahAt(v, t * 1000);
+      if (item.remember) {
+        if (final) store.del('pos.q.' + q.s); else store.set('pos.q.' + q.s, { a: i + 1, t: t });
+        store.set('last.husary', { s: q.s, a: final ? q.a2 : i + 1 });
+      }
+    } else {
+      if (final) store.del('pos.t.' + item.id); else store.set('pos.t.' + item.id, t);
+      store.set('last.' + item.tile, { id: item.id, title: item.title, t: final ? 0 : t, done: !!final });
+    }
+  }
+  function seekTo(t) {
+    if (!item) return;
+    if (phase === 'playing') Engine.playRange(itemUrl(), t, endSec(), onEnd);
+    else { resumeAt = t; try { Engine.element().currentTime = t; } catch (e) {} notify(); }
+  }
+  var api = {
+    on: function (fn) { subs.push(fn); return function () { subs = subs.filter(function (f) { return f !== fn; }); }; },
+    item: function () { return item; }, phase: function () { return phase; }, error: function () { return error; },
+    speeds: speeds, speed: speed,
+    setSpeed: function (v) { store.set(item && item.lecture ? 'speed.lecture' : 'speed.quran', v); Engine.setRate(v); notify(); },
+    /* queue: [{s,a1,a2}]; opts: {remember, album, startA, startT} */
+    playQuran: function (queue, opts) {
+      opts = opts || {}; item = { kind: 'quran', queue: queue, qi: 0, remember: !!opts.remember, album: opts.album, lecture: false, tile: 'husary' };
+      var q = queue[0], v = D.timings.murattal[String(q.s)].v, from = v[q.a1 - 1][0] / 1000;
+      if (opts.startT !== undefined && opts.startT !== null && opts.startT > from && opts.startT < v[q.a2 - 1][1] / 1000 - 1) from = opts.startT;
+      else if (opts.startA && opts.startA >= q.a1 && opts.startA <= q.a2) from = v[opts.startA - 1][0] / 1000;
+      start(from);
+    },
+    playTrack: function (track, opts) {
+      opts = opts || {}; item = { kind: 'track', id: track.id, url: track.url, title: track.title, artist: track.artist, album: opts.album, lecture: !!opts.lecture, tile: opts.tile, quranSurah: track.surah };
+      var from = opts.startT || 0; start(from);
+    },
+    playsSurah: function (s) { return isQuran() && cur().s === s && (phase === 'playing' || phase === 'paused'); },
+    playsTrack: function (id) { return item && item.kind === 'track' && item.id === id && (phase === 'playing' || phase === 'paused'); },
+    toggle: function () {
+      if (!item) return;
+      if (phase === 'playing') { resumeAt = Engine.time(); Engine.pause(); phase = 'paused'; stopSaving(); savePos(false); Engine.sessionState(false); notify(); return; }
+      if (phase === 'ended') { if (isQuran()) { item.qi = 0; var q = cur(); start(verses()[q.a1 - 1][0] / 1000); } else start(0); return; }
+      var t = resumeAt !== null ? resumeAt : Engine.time(); resumeAt = null; start(t);
+    },
+    prev: function () {
+      if (!item) return;
+      if (!isQuran()) { seekTo(Math.max(0, (phase === 'playing' ? Engine.time() : (resumeAt || 0)) - 15)); return; }
+      var q = cur(), v = verses(), t = phase === 'playing' ? Engine.time() : (resumeAt !== null ? resumeAt : Engine.time()), i = Planner.ayahAt(v, t * 1000);
+      if (t - v[i][0] / 1000 > 1.5 || i <= q.a1 - 1) { if (i <= q.a1 - 1 && t - v[i][0] / 1000 <= 1.5 && item.qi > 0) { item.qi--; var pq = cur(); start(verses()[pq.a2 - 1][0] / 1000); return; } seekTo(v[i][0] / 1000); }
+      else seekTo(v[i - 1][0] / 1000);
+    },
+    next: function () {
+      if (!item) return;
+      if (!isQuran()) { seekTo(Math.min(Engine.duration() || 1e9, (phase === 'playing' ? Engine.time() : (resumeAt || 0)) + 15)); return; }
+      var q = cur(), v = verses(), t = phase === 'playing' ? Engine.time() : (resumeAt !== null ? resumeAt : Engine.time()), i = Planner.ayahAt(v, t * 1000);
+      if (i + 1 <= q.a2 - 1) seekTo(v[i + 1][0] / 1000); else onEnd();
+    },
+    back: function () { api.prev(); }, fwd: function () { api.next(); },
+    seek: seekTo,
+    position: function () { return phase === 'playing' ? Engine.time() : (resumeAt !== null ? resumeAt : Engine.time()); },
+    yieldTo: function (who) { if (who !== Listener && phase === 'playing') { savePos(false); phase = 'paused'; resumeAt = Engine.time(); stopSaving(); notify(); } },
+    stop: function () { if (phase === 'playing') { savePos(false); Engine.stop(); } stopSaving(); phase = item ? 'paused' : 'idle'; notify(); }
+  };
+  Engine.on('interrupted', function () { if (phase === 'playing') { resumeAt = Engine.time(); phase = 'paused'; stopSaving(); savePos(false); notify(); } });
+  Engine.on('blocked', function () { if (phase === 'playing') { phase = 'paused'; error = 'Tap play to start'; notify(); } });
+  Engine.on('error', function () { if (phase === 'playing') { phase = 'paused'; error = 'Audio unavailable — check the connection or download it'; notify(); } });
+  return api;
+})();
+
+/* ---------- pages ---------- */
+function statusOf(id) {
+  var last, c, n;
+  switch (id) {
+    case 'memorize': return { text: surah(Memo.st.s).name + ' · Ayah ' + Memo.st.a, live: true };
+    case 'revise': return { text: 'Pages · surah · juz · all', live: false };
+    case 'husary': last = store.get('last.husary', null); return last ? { text: surah(last.s).name + ' · Ayah ' + last.a, live: true } : { text: '114 surahs · 30 juz', live: false };
+    default:
+      last = store.get('last.' + id, null); c = D.content[id];
+      if (last && !last.done) return { text: last.title + (last.t ? ' · ' + mmss(last.t) : ''), live: true };
+      if (!c) return { text: '…', live: false };
+      n = c.items.filter(function (it) { return it.url; }).length;
+      if (id === 'reciters') return { text: c.items.length + ' recitations', live: false };
+      return n ? { text: n + ' of ' + c.items.length + ' available', live: false } : { text: 'Not yet available', live: false };
+  }
+}
+
+function HomePage() {
+  var layout = store.get('layout', null) || { size: 6, tiles: ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith'] };
+  layout.tiles = layout.tiles.filter(function (t) { return TILES[t]; });
+  var editing = false, page, body, unsub = [];
+  function save() { store.set('layout', layout); }
+  function inactive() { return TILE_ORDER.filter(function (t) { return layout.tiles.indexOf(t) < 0; }); }
+  function renderGrid() {
+    body.textContent = '';
+    var grid = el('div', { class: 'grid' + (layout.size === 4 ? ' four' : '') });
+    var shown = layout.tiles.slice(0, layout.size), i;
+    for (i = 0; i < layout.size; i++) {
+      var id = shown[i];
+      if (!id) { grid.appendChild(el('div', { class: 'tile blank' })); continue; }
+      var st = statusOf(id);
+      grid.appendChild(el('button', { class: 'tile' + (st.live ? ' live' : ''), 'data-tile': id, onclick: (function (id) { return function () { Engine.unlock(); openTile(id); }; })(id) }, [
+        el('span', { class: 'name', text: TILES[id] }), el('span', { class: 'status num', text: st.text })
+      ]));
+    }
+    body.appendChild(grid);
+  }
+  function renderEdit() {
+    body.textContent = '';
+    var wrap = el('div', { class: 'edit' });
+    var seg = el('div', { class: 'seg' });
+    [4, 6].forEach(function (n) { seg.appendChild(el('button', { class: n === layout.size ? 'on' : '', text: String(n), onclick: function () { layout.size = n; save(); renderEdit(); } })); });
+    wrap.appendChild(el('div', { class: 'sizerow' }, [el('span', { class: 'lbl', text: 'Tiles' }), seg]));
+    var active = el('div', { class: 'elist' }), ROW = 56;
+    var shown = layout.tiles.slice(0, layout.size);
+    function rowEl(id, i) {
+      var r = el('div', { class: 'erow', 'data-id': id }, [
+        el('button', { class: 'pm', 'aria-label': 'Remove ' + TILES[id], onclick: function () { layout.tiles.splice(layout.tiles.indexOf(id), 1); save(); renderEdit(); } }, [ICON.minus()]),
+        el('span', { class: 'nm', text: TILES[id] }),
+        el('span', { class: 'hd', 'aria-label': 'Reorder' }, [ICON.handle()])
+      ]);
+      r.querySelector('.hd').addEventListener('pointerdown', function (ev) { startDrag(ev, r); });
+      return r;
+    }
+    shown.forEach(function (id, i) { active.appendChild(rowEl(id, i)); });
+    wrap.appendChild(active);
+    var extra = layout.tiles.slice(layout.size), rest = inactive();
+    var more = extra.concat(rest);
+    if (more.length) {
+      wrap.appendChild(el('div', { class: 'sect', text: 'More tiles' }));
+      var full = shown.length >= layout.size;
+      more.forEach(function (id) {
+        wrap.appendChild(el('div', { class: 'erow' }, [
+          el('button', { class: 'pm', disabled: full ? '' : null, 'aria-label': 'Add ' + TILES[id], onclick: function () { if (full) return; var k = layout.tiles.indexOf(id); if (k >= 0) layout.tiles.splice(k, 1); layout.tiles.splice(shown.length, 0, id); save(); renderEdit(); } }, [ICON.plus()]),
+          el('span', { class: 'nm', text: TILES[id] })
+        ]));
+      });
+      if (full) wrap.appendChild(el('div', { class: 'hint', text: layout.size === 4 ? 'All 4 tiles are in use. Remove one, or choose 6.' : 'All 6 tiles are in use. Remove one to make room.' }));
+    }
+    body.appendChild(wrap);
+
+    /* pointer-event drag to reorder (HTML5 DnD does not exist on iOS Safari) */
+    var drag = null;
+    function layoutRows(except) {
+      var rows = active.children, i;
+      for (i = 0; i < rows.length; i++) if (rows[i] !== except) rows[i].style.transform = 'translateY(' + (i * ROW) + 'px)';
+    }
+    function startDrag(ev, row) {
+      if (drag) return;
+      ev.preventDefault();
+      var rows = Array.prototype.slice.call(active.children), from = rows.indexOf(row);
+      active.style.height = (rows.length * ROW) + 'px'; active.classList.add('drag');
+      layoutRows(null);
+      drag = { row: row, from: from, to: from, y0: ev.clientY, id: ev.pointerId };
+      row.classList.add('lift');
+      try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {}
+      var hd = ev.target;
+      function move(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        var dy = e.clientY - drag.y0, y = drag.from * ROW + dy;
+        drag.row.style.transform = 'translateY(' + y + 'px)';
+        var to = Math.max(0, Math.min(rows.length - 1, Math.round(y / ROW)));
+        if (to !== drag.to) {
+          drag.to = to;
+          var order = rows.slice(); order.splice(drag.from, 1); order.splice(to, 0, drag.row);
+          order.forEach(function (r, i) { if (r !== drag.row) r.style.transform = 'translateY(' + (i * ROW) + 'px)'; });
+        }
+      }
+      function up(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        hd.removeEventListener('pointermove', move); hd.removeEventListener('pointerup', up); hd.removeEventListener('pointercancel', up);
+        var order = rows.slice(); order.splice(drag.from, 1); order.splice(drag.to, 0, drag.row);
+        var ids = order.map(function (r) { return r.getAttribute('data-id'); });
+        layout.tiles = ids.concat(layout.tiles.filter(function (t) { return ids.indexOf(t) < 0; }));
+        save(); drag = null; renderEdit();
+      }
+      hd.addEventListener('pointermove', move); hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
+    }
+    page.testDrag = { start: startDrag };
+  }
+  function render() { if (editing) renderEdit(); else renderGrid(); }
+  return {
+    id: 'home', title: 'Mushaf', fill: true,
+    action: { label: 'Edit', onTap: function () { editing = !editing; page.setAction(editing ? 'Done' : 'Edit'); render(); } },
+    build: function (b, p) {
+      body = b; page = p; render();
+      unsub.push(Memo.on(function () { if (!editing && Nav.current() === page) render(); }));
+      unsub.push(Listener.on(function () { if (!editing && Nav.current() === page) render(); }));
+      Object.keys(COLLECTIONS).forEach(function (id) { content(id).then(function () { if (!editing && Nav.current() === page) render(); }, function () {}); });
+      return { onShow: function () { render(); }, layout: function () { return layout; } };
+    }
+  };
+}
+
+function openTile(id) {
+  switch (id) {
+    case 'memorize': Nav.push(MemoPage()); break;
+    case 'revise': Nav.push(RevisePage()); break;
+    case 'husary': Nav.push(PickerPage()); break;
+    case 'reciters': Nav.push(RecitersPage()); break;
+    default: Nav.push(CollectionPage(id));
+  }
+}
+
+/* --- surah picker, grouped by juz --- */
+function PickerPage() {
+  return {
+    id: 'picker', title: 'Quran', shortTitle: 'Quran', sub: 'Mahmoud Khalil al-Husary · Murattal',
+    build: function (body) {
+      var input = el('input', { type: 'text', inputmode: 'search', enterkeyhint: 'search', placeholder: 'Surah name or number', autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Search surahs' });
+      var myJuz = juzOf(Memo.st.s, Memo.st.a);
+      var jump = el('button', { class: 'jump num', text: 'Juz ' + myJuz, onclick: function () { input.value = ''; filter(''); var h = list.querySelector('[data-juz="' + myJuz + '"]'); if (h) { body.scrollTop = h.offsetTop - body.offsetTop; } } });
+      body.appendChild(el('div', { class: 'search' }, [input, jump]));
+      /* 30 sections. A surah that runs on into the next juz is listed there again as a continuation row ("from ayah N"),
+         which is also the one-tap way into the middle of a long surah. */
+      var list = el('div', { class: 'list' }), groups = {}, j, n;
+      function addRow(g, n, fromA, cont) {
+        var s = surah(n), pos = store.get('pos.q.' + n, null);
+        var sub = el('span', { class: 's' }, [cont ? 'from ayah ' + fromA + ' · page ' + pageOf(n, fromA) : s.ayahs + ' ayat · page ' + s.page]);
+        if (!cont && pos && pos.a > 1) sub.appendChild(el('b', { text: ' · at ayah ' + pos.a }));
+        var row = el('button', { class: 'row' + (cont ? ' cont' : ''), 'data-surah': n, 'data-from': fromA, onclick: function () { openSurah(n, cont ? fromA : 0); } }, [
+          el('span', { class: 'n', text: String(n) }),
+          el('span', { class: 'mid' }, [el('span', { class: 't', text: s.name }), sub]),
+          el('span', { class: 'arn', text: s.arabic, lang: 'ar' })
+        ]);
+        row._q = (n + ' ' + s.name + ' ' + s.en + ' ' + s.arabic + ' ' + s.name.replace(/[-' ]/g, '')).toLowerCase();
+        g.rows.push(row); list.appendChild(row);
+      }
+      for (j = 1; j <= 30; j++) {
+        var start = parseKey(D.meta.juzStarts[j - 1]), end = juzEnd(j);
+        var g = groups[j] = { head: el('div', { class: 'jz num' + (j === myJuz ? ' on' : ''), text: 'Juz ' + j, 'data-juz': j }), rows: [] };
+        list.appendChild(g.head);
+        for (n = start[0]; n <= end[0]; n++) addRow(g, n, n === start[0] ? start[1] : 1, n === start[0] && start[1] > 1);
+      }
+      body.appendChild(list);
+      function filter(q) {
+        q = q.trim().toLowerCase(); var qn = /^\d+$/.test(q) ? +q : 0;
+        Object.keys(groups).forEach(function (j) {
+          var g = groups[j], any = false;
+          g.rows.forEach(function (r) { var ok = !q || (qn ? +r.getAttribute('data-surah') === qn : r._q.indexOf(q) >= 0); r.classList.toggle('hide', !ok); if (ok) any = true; });
+          g.head.classList.toggle('hide', !any);
+        });
+      }
+      input.addEventListener('input', function () { filter(input.value); });
+      function openSurah(n, fromA) {
+        Engine.unlock();
+        if (fromA) Listener.playQuran(rangeQueue(n, 1, 114, surah(114).ayahs), { remember: true, album: 'Quran · Husary', startA: fromA });
+        else if (!Listener.playsSurah(n)) {
+          var pos = store.get('pos.q.' + n, null);
+          Listener.playQuran(rangeQueue(n, 1, 114, surah(114).ayahs), { remember: true, album: 'Quran · Husary', startT: pos ? pos.t : null });
+        }
+        Nav.push(PlayerPage({ title: surah(n).name }));
+      }
+      return { filter: filter };
+    }
+  };
+}
+
+/* --- listening player --- */
+function PlayerPage(opts) {
+  var raf = 0, unsub = null, page, text, info, fill, tl, tr, playBtn, speedRow, dl, spans = {}, hl = { key: null, el: null }, shownAyah = '', shownItem = null, scrubbing = false, dlState = 'idle', dlPct = 0;
+  function itemTitle() { var it = Listener.item(); if (!it) return opts.title || ''; if (it.kind === 'quran') return surah(it.queue[it.qi].s).name; return it.title; }
+  function itemSub() { var it = Listener.item(); if (!it) return ''; if (it.kind === 'quran') return 'Mahmoud Khalil al-Husary' + (it.album && it.album.indexOf('Revis') === 0 ? ' · ' + it.album : ''); return it.artist || it.album || ''; }
+  function renderStatic() {
+    var it = Listener.item(), ph = Listener.phase();
+    page.setTitle(itemTitle()); page.setSub(itemSub());
+    playBtn.textContent = ''; playBtn.appendChild(ph === 'playing' ? ICON.pause() : ICON.play());
+    speedRow.textContent = '';
+    Listener.speeds().forEach(function (v) { speedRow.appendChild(el('button', { class: v === Listener.speed() ? 'on' : '', text: speedLabel(v), onclick: function () { Listener.setSpeed(v); renderStatic(); } })); });
+    var key = it ? (it.kind === 'quran' ? 'q' + it.queue[it.qi].s : 't' + it.id) : '';
+    if (key !== shownItem) { shownItem = key; shownAyah = ''; dlState = 'idle'; refreshDl(); }
+    if (Listener.error()) { info.textContent = Listener.error(); }
+    if (!it || it.kind !== 'quran') {
+      if (it && it.quranSurah && ph !== 'ended') { text.className = 'artext'; text.textContent = surah(it.quranSurah).arabic; }   /* a reciter's surah: its name, large */
+      else { text.className = 'artext none'; text.textContent = it ? (ph === 'ended' ? 'Finished' : '') : ''; }
+    }
+    if (ph === 'ended' && it && it.kind === 'quran') info.textContent = 'Finished';
+    frame();
+  }
+  function refreshDl() {
+    var it = Listener.item(); if (!it) { dl.textContent = ''; return; }
+    var url = it.kind === 'quran' ? D.timings.murattal[String(it.queue[it.qi].s)].url : it.url;
+    if (dlState === 'downloading') { dl.textContent = 'Downloading ' + Math.round(dlPct * 100) + '%'; return; }
+    if (dlState === 'confirm') { dl.textContent = 'Remove download?'; return; }
+    Offline.has(url).then(function (yes) { if (dlState === 'downloading' || dlState === 'confirm') return; dlState = yes ? 'have' : 'idle'; dl.textContent = yes ? 'Available offline' : 'Download for offline'; });
+  }
+  function onDl() {
+    var it = Listener.item(); if (!it) return;
+    var url = it.kind === 'quran' ? D.timings.murattal[String(it.queue[it.qi].s)].url : it.url;
+    if (dlState === 'idle') {
+      dlState = 'downloading'; dlPct = 0; refreshDl();
+      Offline.download(url, function (p) { dlPct = p; refreshDl(); }).then(function () { dlState = 'have'; refreshDl(); }, function () { dlState = 'idle'; dl.textContent = 'Download failed — try again'; });
+    } else if (dlState === 'have') { dlState = 'confirm'; refreshDl(); setTimeout(function () { if (dlState === 'confirm') { dlState = 'have'; refreshDl(); } }, 3000); }
+    else if (dlState === 'confirm') { Offline.remove(url).then(function () { dlState = 'idle'; refreshDl(); }); }
+  }
+  function frame() {
+    var it = Listener.item(); if (!it) return;
+    var t = Listener.position(), d = Engine.duration();
+    if (!scrubbing) fill.style.width = d ? Math.min(100, t / d * 100) + '%' : '0%';
+    tl.textContent = mmss(t); tr.textContent = d ? '−' + mmss(Math.max(0, d - t)) : '';
+    if (it.kind === 'quran' && Listener.phase() !== 'ended') {
+      var q = it.queue[it.qi], v = D.timings.murattal[String(q.s)].v, ms = t * 1000, i = Planner.ayahAt(v, ms), a = i + 1, k = q.s + ':' + a;
+      if (k !== shownAyah) { shownAyah = k; spans = renderWords(text, q.s, a, a, 1, D.words[String(q.s)][i].length, []); hl = { key: null, el: null }; }
+      var p = Planner.wordAt(v[i], D.words[String(q.s)][i].length, ms);
+      if (p) hl = highlight(spans, a, p, hl);
+      if (!Listener.error()) info.textContent = surah(q.s).name + ' · Ayah ' + a + ' · Page ' + pageOf(q.s, a);
+    }
+  }
+  function loop() { frame(); raf = requestAnimationFrame(loop); }
+  return {
+    id: 'player', title: opts.title || '', shortTitle: opts.title || 'Back', sub: ' ',
+    build: function (body, p) {
+      page = p;
+      text = el('div', { class: 'artext', lang: 'ar' });
+      body.classList.add('fill');
+      body.appendChild(el('div', { class: 'ptext' }, [text]));
+      info = el('div', { class: 'pinfo num' }); body.appendChild(info);
+      fill = el('div', { class: 'fill' }); var track = el('div', { class: 'track' }, [fill]);
+      tl = el('span', { text: '0:00' }); tr = el('span', { text: '' });
+      var prog = el('div', { class: 'prog', 'aria-label': 'Progress' }, [track, el('div', { class: 'times' }, [tl, tr])]);
+      function scrub(ev, commit) { var r = track.getBoundingClientRect(), f = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)); fill.style.width = (f * 100) + '%'; if (commit) { var d = Engine.duration(); if (d) Listener.seek(f * d); } }
+      prog.addEventListener('pointerdown', function (ev) { scrubbing = true; try { prog.setPointerCapture(ev.pointerId); } catch (e) {} scrub(ev, false); });
+      prog.addEventListener('pointermove', function (ev) { if (scrubbing) scrub(ev, false); });
+      prog.addEventListener('pointerup', function (ev) { if (!scrubbing) return; scrubbing = false; scrub(ev, true); });
+      prog.addEventListener('pointercancel', function () { scrubbing = false; });
+      body.appendChild(prog);
+      var it = Listener.item(), lecture = it && it.kind !== 'quran';
+      playBtn = el('button', { class: 'play', 'aria-label': 'Play or pause', onclick: function () { Engine.unlock(); Listener.toggle(); } });
+      body.appendChild(el('div', { class: 'transport' }, [
+        el('button', { 'aria-label': lecture ? 'Back 15 seconds' : 'Previous ayah', onclick: function () { Listener.prev(); } }, [lecture ? ICON.back15() : ICON.prev()]),
+        playBtn,
+        el('button', { 'aria-label': lecture ? 'Forward 15 seconds' : 'Next ayah', onclick: function () { Listener.next(); } }, [lecture ? ICON.fwd15() : ICON.next()])
+      ]));
+      speedRow = el('div', { class: 'options show', role: 'group', 'aria-label': 'Speed' }); body.appendChild(speedRow);
+      dl = el('button', { class: 'dl', onclick: onDl }); body.appendChild(dl);
+      unsub = Listener.on(renderStatic);
+      renderStatic();
+      return {
+        onShow: function () { renderStatic(); if (!raf) loop(); },
+        onHide: function () { if (raf) cancelAnimationFrame(raf); raf = 0; },
+        destroy: function () { if (unsub) unsub(); if (raf) cancelAnimationFrame(raf); raf = 0; }
+      };
+    }
+  };
+}
+
+/* --- memorisation player --- */
+function MemoPage() {
+  var page, text, status, playBtn, options, pickers, spans = {}, hl = { key: null, el: null }, raf = 0, unsub = null, shownBlock = null, openPicker = null, countdown = null;
+  var PICKERS = [
+    { k: 'speed', label: 'Speed', values: QURAN_SPEEDS, fmt: speedLabel },
+    { k: 'pause', label: 'Pause', values: PAUSES, fmt: speedLabel },
+    { k: 'repeat', label: 'Repeat', values: REPEATS, fmt: function (v) { return v === 0 ? '∞' : String(v); } },
+    { k: 'mode', label: 'Block', values: MODES.map(function (m) { return m[0]; }), fmt: modeLabel },
+    { k: 'source', label: 'Source', values: SOURCES.map(function (m) { return m[0]; }), fmt: sourceLabel }
+  ];
+  function sub() { var s = surah(Memo.st.s); return 'Ayah ' + Memo.st.a + ' of ' + s.ayahs + ' · Page ' + pageOf(Memo.st.s, Memo.st.a) + ' · Juz ' + juzOf(Memo.st.s, Memo.st.a); }
+  function renderPickers() {
+    pickers.textContent = '';
+    PICKERS.forEach(function (pk) {
+      pickers.appendChild(el('button', { class: openPicker === pk.k ? 'open' : '', 'aria-label': pk.label, onclick: function () { openPicker = openPicker === pk.k ? null : pk.k; renderPickers(); renderOptions(); } }, [
+        el('span', { class: 'lbl', text: pk.label }), el('span', { class: 'val num', text: pk.fmt(Memo.st[pk.k]) })
+      ]));
+    });
+  }
+  function renderOptions() {
+    options.textContent = '';
+    var pk = null; PICKERS.forEach(function (x) { if (x.k === openPicker) pk = x; });
+    options.classList.toggle('show', !!pk);
+    if (!pk) return;
+    pk.values.forEach(function (v) {
+      options.appendChild(el('button', { class: v === Memo.st[pk.k] ? 'on' : '', text: pk.fmt(v), onclick: function () { Engine.unlock(); Memo.set(pk.k, v); renderPickers(); renderOptions(); } }));
+    });
+  }
+  function render() {
+    var s = Memo.state(), b = s.block;
+    page.setTitle(surah(Memo.st.s).name); page.setSub(sub());
+    playBtn.textContent = ''; playBtn.appendChild(s.phase === 'playing' || s.phase === 'pausing' ? ICON.pause() : ICON.play());
+    if (b) {
+      var bk = b.s + '/' + b.a1 + ':' + b.w1 + '-' + b.a2 + ':' + b.w2 + '/' + b.k + '/' + b.n;
+      if (bk !== shownBlock) { shownBlock = bk; spans = renderWords(text, b.s, b.a1, b.a2, b.w1, b.w2, b.lead); hl = { key: null, el: null }; }
+    } else if (s.phase === 'done') { text.className = 'artext none'; text.textContent = 'You have reached Al-Fatihah. Everything is behind you.'; }
+    text.classList.toggle('recite', s.phase === 'pausing');
+    renderPickers();
+    renderStatus();
+    if (countdown) { clearInterval(countdown); countdown = null; }
+    if (s.phase === 'pausing') countdown = setInterval(renderStatus, 200);
+  }
+  function renderStatus() {
+    var s = Memo.state(), b = s.block; if (!b) { status.textContent = s.phase === 'done' ? 'Done' : ''; return; }
+    var repTxt = Memo.st.repeat === 0 ? 'Repeat ' + s.rep : 'Repeat ' + s.rep + ' of ' + Memo.st.repeat;
+    var blk = 'Block ' + b.k + ' of ' + b.n;
+    if (s.error) { status.textContent = s.error; return; }
+    if (s.phase === 'pausing') status.textContent = 'Recite · ' + Math.ceil(s.pauseLeft / 1000) + ' s · ' + blk;
+    else if (s.phase === 'playing') status.textContent = blk + ' · ' + repTxt;
+    else if (s.phase === 'done') status.textContent = 'Done';
+    else status.textContent = blk + ' · ' + (b.a1 === b.a2 ? (b.partial ? 'words ' + b.w1 + '–' + b.w2 + ' of ayah ' + b.a1 : 'ayah ' + b.a1) : 'ayat ' + b.a1 + '–' + b.a2) + ' · ' + Math.round(b.dur / 1000) + ' s';
+  }
+  function frame() {
+    var s = Memo.state(), b = s.block;
+    if (b && s.phase === 'playing' && s.T) {
+      var ms = Engine.time() * 1000, v = s.T[String(b.s)].v, i = b.a1 === b.a2 ? b.a1 - 1 : Math.min(b.a2 - 1, Math.max(b.a1 - 1, Planner.ayahAt(v, ms)));
+      var p = Planner.wordAt(v[i], D.words[String(b.s)][i].length, ms);
+      if (p) hl = highlight(spans, i + 1, p, hl);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    id: 'memo', title: surah(Memo.st.s).name, shortTitle: 'Memorise', sub: ' ', onSub: function () { Nav.push(PositionPage()); },
+    build: function (body, p) {
+      page = p; body.classList.add('fill');
+      text = el('div', { class: 'artext', lang: 'ar' });
+      body.appendChild(el('div', { class: 'ptext' }, [text]));
+      status = el('div', { class: 'pinfo num' }); body.appendChild(status);
+      playBtn = el('button', { class: 'play', 'aria-label': 'Play or pause', onclick: function () { Engine.unlock(); Memo.toggle(); } });
+      body.appendChild(el('div', { class: 'transport' }, [
+        el('button', { 'aria-label': 'Previous block', onclick: function () { Engine.unlock(); Memo.prev(); } }, [ICON.prev()]),
+        playBtn,
+        el('button', { 'aria-label': 'Next block', onclick: function () { Engine.unlock(); Memo.next(); } }, [ICON.next()])
+      ]));
+      options = el('div', { class: 'options', role: 'group' }); body.appendChild(options);
+      pickers = el('div', { class: 'pickers' }); body.appendChild(pickers);
+      unsub = Memo.on(render);
+      Memo.ensurePlan().then(render, render);
+      render();
+      return {
+        onShow: function () { Memo.ensurePlan().then(render, render); if (!raf) frame(); },
+        onHide: function () { if (raf) cancelAnimationFrame(raf); raf = 0; },
+        destroy: function () { if (unsub) unsub(); if (raf) cancelAnimationFrame(raf); raf = 0; if (countdown) clearInterval(countdown); }
+      };
+    }
+  };
+}
+
+/* --- "I am learning" position picker: surahs from the back, ayah grid inline --- */
+function PositionPage() {
+  return {
+    id: 'position', title: 'I am learning', shortTitle: 'Position', sub: 'Surah, then the ayah you are on. Surahs run from the back.',
+    build: function (body) {
+      var list = el('div', { class: 'list' }), open = Memo.st.s, grids = {}, rows = {};
+      function grid(s) {
+        var g = el('div', { class: 'ayahs' }), n = surah(s).ayahs, a;
+        for (a = 1; a <= n; a++) g.appendChild(el('button', { class: (s === Memo.st.s && a === Memo.st.a) ? 'on' : '', text: String(a), onclick: (function (a) { return function () { Memo.setPosition(s, a, 1).then(function () { Nav.pop(); }); }; })(a) }));
+        return g;
+      }
+      for (var n = 114; n >= 1; n--) {
+        var s = surah(n);
+        var row = el('button', { class: 'row', 'data-surah': n, onclick: (function (n) { return function () { toggle(n); }; })(n) }, [
+          el('span', { class: 'n', text: String(n) }),
+          el('span', { class: 'mid' }, [el('span', { class: 't', text: s.name }), el('span', { class: 's' }, [s.ayahs + ' ayat · page ' + s.page + ' · juz ' + s.juz])]),
+          el('span', { class: 'arn', text: s.arabic, lang: 'ar' })
+        ]);
+        rows[n] = row; list.appendChild(row);
+        if (n === open) { grids[n] = grid(n); list.appendChild(grids[n]); }
+      }
+      function toggle(n) {
+        if (grids[open]) { list.removeChild(grids[open]); delete grids[open]; }
+        if (open === n) { open = 0; return; }
+        open = n; grids[n] = grid(n); list.insertBefore(grids[n], rows[n].nextSibling);
+      }
+      body.appendChild(list);
+      return { onShow: function () { var r = rows[open]; if (r) body.scrollTop = Math.max(0, r.offsetTop - body.offsetTop - 8); } };
+    }
+  };
+}
+
+/* --- revision: four ranges relative to the position --- */
+function RevisePage() {
+  return {
+    id: 'revise', title: 'Revise', shortTitle: 'Revise', sub: ' ', onSub: function () { Nav.push(PositionPage()); },
+    build: function (body, page) {
+      function render() {
+        body.textContent = '';
+        var S = Memo.st.s, A = Memo.st.a, P = pageOf(S, A), J = juzOf(S, A), P2 = Math.min(604, P + 4);
+        page.setSub('Position ' + surah(S).name + ' · Ayah ' + A + ' · memorised from here to An-Nas');
+        var pStart = parseKey(D.meta.pageStarts[P - 1]), pEnd = pageEnd(P2), jEnd = juzEnd(J);
+        var choices = [
+          { nm: 'Last 5 pages', df: ['Pages ' + P + '–' + P2 + ': from the first ayah of page ' + P + ' (', surah(pStart[0]).name + ' ' + pStart[1], ') to the end of page ' + P2 + ' (', surah(pEnd[0]).name + ' ' + pEnd[1], ')'], q: rangeQueue(pStart[0], pStart[1], pEnd[0], pEnd[1]) },
+          { nm: 'Last surah', df: ['All of ', surah(S).name, ' · ' + surah(S).ayahs + ' ayat'], q: rangeQueue(S, 1, S, surah(S).ayahs) },
+          { nm: 'Last juz', df: ['From ', surah(S).name + ' ' + A, ' to the end of Juz ' + J + ' (', surah(jEnd[0]).name + ' ' + jEnd[1], ')'], q: rangeQueue(S, A, jEnd[0], jEnd[1]) },
+          { nm: 'Everything', df: ['From ', surah(S).name + ' ' + A, ' to An-Nas 6'], q: rangeQueue(S, A, 114, 6) }
+        ];
+        choices.forEach(function (c) {
+          var df = el('span', { class: 'df num' });
+          c.df.forEach(function (part, i) { df.appendChild(i % 2 ? el('b', { text: part }) : document.createTextNode(part)); });
+          body.appendChild(el('button', { class: 'choice', onclick: function () {
+            Engine.unlock();
+            Listener.playQuran(c.q, { remember: false, album: 'Revision · ' + c.nm });
+            Nav.push(PlayerPage({ title: surah(c.q[0].s).name }));
+          } }, [el('span', { class: 'nm', text: c.nm }), df]));
+        });
+        body.appendChild(el('div', { class: 'hint', text: 'Continuous playback at your listening speed, no pauses.', style: 'margin-top:22px;font-size:15px;color:var(--faint)' }));
+      }
+      render();
+      return { onShow: render };
+    }
+  };
+}
+
+/* --- collections (sharh / hadith / podcasts) and recitations --- */
+function CollectionPage(id) {
+  return {
+    id: 'collection-' + id, title: TILES[id], shortTitle: TILES[id].length > 14 ? 'Back' : TILES[id], sub: ' ',
+    build: function (body, page) {
+      function render(c) {
+        body.textContent = '';
+        var avail = c.items.filter(function (it) { return it.url; }).length;
+        page.setSub(avail === c.items.length ? c.items.length + ' items' : avail + ' of ' + c.items.length + ' available' + (c.note && avail === 0 ? ' · sample list' : ''));
+        c.items.forEach(function (it, i) {
+          var pos = store.get('pos.t.' + it.id, 0), sub = el('span', { class: 's' });
+          if (!it.url) sub.textContent = 'Not yet available';
+          else { sub.textContent = it.duration ? mmss(it.duration) : ''; if (pos > 3) { sub.appendChild(el('b', { text: (it.duration ? ' · ' : '') + 'resume at ' + mmss(pos) })); } }
+          body.appendChild(el('button', { class: 'row' + (it.url ? '' : ' off'), disabled: it.url ? null : '', onclick: function () {
+            if (!it.url) return; Engine.unlock();
+            if (!Listener.playsTrack(it.id)) Listener.playTrack(it, { lecture: true, album: c.title, tile: id, startT: pos > 3 ? pos : 0 });
+            Nav.push(PlayerPage({ title: it.title }));
+          } }, [el('span', { class: 'n', text: String(i + 1) }), el('span', { class: 'mid' }, [el('span', { class: 't', text: it.title }), sub])]));
+        });
+        if (!c.items.length) body.appendChild(el('div', { class: 'empty', text: 'Nothing here yet.' }));
+      }
+      content(id).then(render, function () { body.appendChild(el('div', { class: 'empty', text: 'Could not load this list.' })); });
+      return { onShow: function () { if (D.content[id]) render(D.content[id]); } };
+    }
+  };
+}
+function RecitersPage() {
+  return {
+    id: 'reciters', title: 'Recitations', shortTitle: 'Recitations', sub: 'Favourite reciter and surah pairs',
+    build: function (body) {
+      function render(c) {
+        body.textContent = '';
+        c.items.forEach(function (it) {
+          var s = it.surah ? surah(it.surah) : null, pos = store.get('pos.t.' + it.id, 0), sub = el('span', { class: 's', text: it.reciter || '' });
+          if (pos > 3) sub.appendChild(el('b', { text: ' · resume at ' + mmss(pos) }));
+          body.appendChild(el('button', { class: 'row' + (it.url ? '' : ' off'), disabled: it.url ? null : '', onclick: function () {
+            if (!it.url) return; Engine.unlock();
+            if (!Listener.playsTrack(it.id)) Listener.playTrack({ id: it.id, url: it.url, title: it.title, artist: it.reciter, surah: it.surah }, { lecture: false, album: 'Recitations', tile: 'reciters', startT: pos > 3 ? pos : 0 });
+            Nav.push(PlayerPage({ title: it.title }));
+          } }, [
+            el('span', { class: 'n', text: s ? String(s.n) : '' }),
+            el('span', { class: 'mid' }, [el('span', { class: 't', text: it.title }), sub]),
+            s ? el('span', { class: 'arn', text: s.arabic, lang: 'ar' }) : null
+          ]));
+        });
+      }
+      content('reciters').then(render, function () { body.appendChild(el('div', { class: 'empty', text: 'Could not load the list.' })); });
+      return { onShow: function () { if (D.content.reciters) render(D.content.reciters); } };
+    }
+  };
+}
+
+/* ---------- boot ---------- */
+function boot() {
+  try { history.replaceState({ depth: 0 }, ''); } catch (e) {}
+  document.addEventListener('touchend', function () { Engine.unlock(); }, { passive: true, once: true });
+  document.addEventListener('click', function () { Engine.unlock(); }, { once: true });
+  Promise.all([loadJSON('quran/meta.json'), loadJSON('quran/words.json'), timings('murattal')]).then(function (r) {
+    D.meta = r[0]; D.words = r[1];
+    Nav.push(HomePage());
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(function () {}); }
+    window.MUSHAF = { Engine: Engine, Memo: Memo, Listener: Listener, Planner: Planner, Nav: Nav, store: store, D: D, Offline: Offline, openTile: openTile, ready: true };
+    document.documentElement.setAttribute('data-ready', '1');
+  }, function (err) {
+    document.getElementById('stack').appendChild(el('div', { class: 'empty', style: 'padding-top:40vh', text: 'Could not load the Quran data. ' + (err && err.message ? err.message : '') }));
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>

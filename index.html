@@ -1,34 +1,1886 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#05070C">
-<link rel="apple-touch-icon" href="./apple-touch-icon.png"><link rel="icon" href="./icon-192.png">
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <title>Mushaf</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mushaf">
+<meta name="theme-color" content="#05070C">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
 <style>
-html{background:#05070C}
-body{margin:0;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;
-     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:#F2F5FA;
-     background:linear-gradient(180deg,#05070C,#0A0F1A)}
-main{padding:32px 24px;max-width:420px;width:100%}
-img{width:72px;height:72px;border-radius:18px;display:block;margin:0 auto 22px}
-h1{font-weight:600;font-size:22px;text-align:center;margin:0 0 6px;letter-spacing:-.01em}
-p{color:rgba(238,243,252,.5);text-align:center;font-size:14px;margin:0 0 28px;line-height:1.5}
-a{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;margin-top:10px;border-radius:16px;
-  background:rgba(255,255,255,.042);border:1px solid rgba(255,255,255,.085);color:inherit;text-decoration:none;font-size:16px}
-a span{color:rgba(238,243,252,.46);font-size:13px}
-a.off{opacity:.38;pointer-events:none}
-</style></head><body><main>
-<img src="./icon-192.png" alt="">
-<h1>Mushaf</h1>
-<p>Three prototypes are being built. Each appears here as soon as it is finished.</p>
-<a id="a" class="off" href="./preview/a/">A · Tiles and sheets <span>not yet</span></a>
-<a id="b" class="off" href="./preview/b/">B · Typographic stack <span>not yet</span></a>
-<a id="c" class="off" href="./preview/c/">C · Now playing first <span>not yet</span></a>
+:root{
+  --ink0:#05070C; --ink1:#0A0F1A;
+  --text:#F2F4F8; --dim:rgba(255,255,255,.46); --faint:rgba(255,255,255,.26);
+  --hair:rgba(255,255,255,.075); --accent:#8AAEFF;
+  --pill:rgba(138,174,255,.13); --pillb:rgba(138,174,255,.32);
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --quran:"KFGQPC Uthman Taha Naskh","Amiri","Scheherazade New","Noto Naskh Arabic",serif;
+  --pad:20px; --mini:62px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#05070C;height:100%;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+/* position:fixed + inset 0 (A's approach): iOS 15 has no overscroll-behavior, so the page itself cannot rubber-band */
+body{margin:0;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100vh;height:100dvh;overflow:hidden;
+  background:linear-gradient(180deg,#05070C 0%,#0A0F1A 100%);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.3;
+  touch-action:manipulation;-webkit-font-smoothing:antialiased;overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none;text-align:inherit}
+button:disabled{cursor:default}
+input{font:inherit;color:inherit;background:none;border:0;outline:none;-webkit-appearance:none;border-radius:0;-webkit-user-select:text;user-select:text}
+input::-webkit-search-cancel-button,input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.ar{font-family:var(--quran);direction:rtl;unicode-bidi:isolate}
+.hide{display:none!important}
+/* dim-white text buttons: Edit / Back / Close / Juz jump are never the accent */
+.txtbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 4px;color:var(--dim);font-size:17px}
+.txtbtn:active{color:var(--text)}
+
+/* ---------------- home ---------------- */
+#app{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;
+  padding:var(--sat) var(--sar) 0 var(--sal)}
+.bar{flex:none;display:flex;align-items:center;justify-content:flex-end;height:44px;
+  padding:0 calc(12px + var(--sar)) 0 calc(var(--pad) + var(--sal))}
+.htitle{flex:none;padding:0 calc(var(--pad) + var(--sar)) 12px calc(var(--pad) + var(--sal))}
+.htitle h1{margin:0;font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.15}
+#homeBody{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  padding:0 calc(var(--pad) + var(--sar)) 0 calc(var(--pad) + var(--sal))}
+#homeBody.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(28px + var(--sab))}
+#homeBody.pad{padding-bottom:calc(var(--mini) + 10px + var(--sab))}
+#homeBody:not(.pad):not(.scroll){padding-bottom:calc(10px + var(--sab))}
+
+/* typographic grid: hairlines only, one big light name, one dim status */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr))}
+.grid.four{grid-template-rows:repeat(2,minmax(0,1fr))}
+.tile{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;
+  min-width:0;min-height:0;padding:18px 16px 20px 0;border-top:1px solid var(--hair);overflow:hidden}
+.tile:nth-child(odd){border-right:1px solid var(--hair)}
+.tile:nth-child(even){padding-left:20px;padding-right:0}
+.tile:nth-child(-n+2){border-top:0}
+.tile .name{position:relative;z-index:1;font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1.14;text-align:left;max-width:100%}
+.tile .status{position:relative;z-index:1;margin-top:7px;font-size:15px;line-height:1.45;color:var(--dim);max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.tile .status .ar{font-size:17px;line-height:1.45}
+/* the one accent on the home: the prayer app's pill on the cell whose content is playing */
+.tile.playing:before{content:"";position:absolute;left:0;right:8px;top:6px;bottom:6px;z-index:0;
+  background:var(--pill);border:1px solid var(--pillb);border-radius:14px}
+.tile:nth-child(even):before{left:12px;right:0}
+.tile.playing .status{color:var(--accent)}
+.tile.blank{pointer-events:none}
+.tile .tap{position:absolute;left:0;top:0;right:0;bottom:0;z-index:2}
+.tile .tap:active + .name{opacity:.55}
+.tile .chev{position:absolute;z-index:3;top:2px;right:2px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.tile .chev:active{color:var(--text)}
+.tile .chev svg{width:9px;height:16px}
+
+/* ---------------- edit mode: Control-Center style list ---------------- */
+.sizerow{display:flex;align-items:center;justify-content:space-between;min-height:56px;border-bottom:1px solid var(--hair)}
+.sizerow .lbl{font-size:17px}
+.seg{display:flex}
+.seg button{min-width:52px;min-height:44px;padding:0 16px;color:var(--dim);font-size:17px;text-align:center;font-variant-numeric:tabular-nums}
+.seg button.on{color:var(--accent)}
+.seg button + button{border-left:1px solid var(--hair)}
+.sect{margin:28px 0 2px;font-size:15px;color:var(--dim);letter-spacing:.01em}
+.elist{position:relative}
+.erow{display:flex;align-items:center;height:56px;border-bottom:1px solid var(--hair);background:transparent}
+.elist.drag .erow{position:absolute;left:0;right:0;top:0;transition:transform .18s ease;background:#070B13}
+.erow.lift{transition:none!important;z-index:2;background:#0A0F1A;border-top:1px solid var(--hair)}
+.erow .pm{flex:none;width:44px;height:56px;display:flex;align-items:center;color:var(--dim)}
+.erow .pm:disabled{opacity:.3}
+.erow .nm{flex:1;min-width:0;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.erow .hd{flex:none;width:44px;height:56px;display:flex;align-items:center;justify-content:flex-end;color:var(--dim);touch-action:none}
+.hint{margin-top:20px;font-size:15px;color:var(--faint);line-height:1.45}
+
+/* ---------------- mini player, docked ---------------- */
+.mini{position:fixed;left:0;right:0;bottom:0;z-index:20;height:calc(var(--mini) + var(--sab));
+  padding:0 calc(10px + var(--sar)) var(--sab) calc(var(--pad) + var(--sal));
+  background:#070B13;border-top:1px solid var(--hair);display:flex;align-items:center;
+  transform:translateY(0);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.mini.away{transform:translateY(120%);pointer-events:none}
+.mini .mp{position:absolute;left:0;right:0;top:0;height:2px;background:transparent}
+.mini .mp i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent)}
+.mini .mt{flex:1;min-width:0;padding-right:10px}
+.mini .mt b{display:block;font-weight:400;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .mt span{display:block;font-size:15px;line-height:1.4;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums}
+.mini .mt .ar{font-size:17px}
+.mini .expand{position:absolute;left:0;top:0;right:60px;bottom:0}
+.mini .mb{position:relative;z-index:2;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--text)}
+.mini .mb:active{opacity:.5}
+.mini .mb svg{width:28px;height:28px}
+
+/* ---------------- sheets ---------------- */
+.sheet{position:fixed;left:0;top:0;right:0;bottom:0;z-index:30;background:rgba(0,0,0,0);transition:background .3s;pointer-events:none}
+.sheet.show{background:rgba(0,0,0,.5);pointer-events:auto}
+.sheet.z2{z-index:50}
+.card{position:absolute;left:0;right:0;bottom:0;top:calc(var(--sat) + 30px);background:#070B13;border-top:1px solid var(--hair);
+  display:flex;flex-direction:column;transform:translateY(102%);transition:transform .34s cubic-bezier(.2,.8,.2,1);overflow:hidden}
+.sheet.show .card{transform:translateY(0)}
+.card .hd{flex:none;display:flex;align-items:center;justify-content:space-between;height:44px;
+  padding:0 calc(12px + var(--sar)) 0 calc(var(--pad) + var(--sal) - 4px)}
+.card .stitle{flex:none;padding:0 calc(var(--pad) + var(--sar)) 10px calc(var(--pad) + var(--sal))}
+.card .stitle h2{margin:0;font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.15}
+.card .stitle .ssub{display:block;margin-top:5px;font-size:15px;color:var(--dim);line-height:1.4}
+.card .tools{flex:none;padding:0 calc(var(--pad) + var(--sar)) 0 calc(var(--pad) + var(--sal))}
+.body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:0 calc(var(--pad) + var(--sar)) calc(28px + var(--sab)) calc(var(--pad) + var(--sal))}
+.search{display:flex;align-items:center;min-height:50px;border-bottom:1px solid var(--hair)}
+.search input{flex:1;min-width:0;height:50px;font-size:17px;padding:0}
+.search input::placeholder{color:var(--faint)}
+.search .jump{flex:none;height:50px;padding-left:14px;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:17px}
+
+/* two-line list rows */
+.jz{padding:24px 0 6px;font-size:15px;letter-spacing:.01em;color:var(--dim);border-bottom:1px solid var(--hair);
+  display:flex;justify-content:space-between;gap:12px}
+.jz.on{color:var(--accent)}
+.jz .jn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;width:100%;min-height:58px;padding:9px 0;border-bottom:1px solid var(--hair);text-align:left}
+.row .n{flex:none;width:36px;color:var(--dim);font-size:15px;font-variant-numeric:tabular-nums}
+.row .mid{flex:1;min-width:0}
+.row .t{display:block;font-size:17px;line-height:1.35}
+.row .s{display:block;margin-top:2px;font-size:15px;line-height:1.4;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums}
+.row .s b{font-weight:400;color:var(--accent)}
+.row .arn{flex:none;margin-left:14px;font-family:var(--quran);font-size:23px;line-height:1.4;direction:rtl;unicode-bidi:isolate}
+.row.cont .t,.row.cont .arn{color:var(--dim)}
+.row.playing .t,.row.playing .arn{color:var(--accent)}
+.row.off{opacity:.4}
+.row:not(.off):active{opacity:.55}
+.empty{padding:36px 0;color:var(--dim);font-size:17px;text-align:center}
+
+/* ayah grid in the position picker */
+.ayahs{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 0 16px;border-bottom:1px solid var(--hair)}
+.ayahs button{height:44px;font-size:17px;color:var(--dim);text-align:center;font-variant-numeric:tabular-nums}
+.ayahs button.on{color:var(--accent)}
+.ayahs button:active{color:var(--text)}
+.subhd{padding:14px 0 2px;font-size:15px;color:var(--dim)}
+
+/* revise */
+.choice{display:block;width:100%;text-align:left;padding:20px 0 18px;border-bottom:1px solid var(--hair)}
+.choice .nm{display:block;font-size:24px;font-weight:300;letter-spacing:-.01em}
+.choice .df{display:block;margin-top:6px;font-size:15px;color:var(--dim);line-height:1.45;font-variant-numeric:tabular-nums}
+.choice .df b{font-weight:400;color:var(--text)}
+.choice:active .nm{opacity:.55}
+
+/* ---------------- full player ---------------- */
+.player{position:fixed;left:0;top:0;right:0;bottom:0;z-index:40;background:linear-gradient(180deg,#05070C 0%,#0A0F1A 100%);
+  transform:translateY(102%);transition:transform .36s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;
+  padding:var(--sat) var(--sar) 0 var(--sal)}
+.player.show{transform:translateY(0)}
+.grab{flex:none;height:44px;display:flex;align-items:center;justify-content:center;touch-action:none}
+.grab i{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+.pbody{flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:0 calc(var(--pad) + var(--sar)) calc(10px + var(--sab)) calc(var(--pad) + var(--sal))}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.ptitle{flex:none;padding:0 0 6px}
+.ptitle h2{margin:0;font-size:30px;font-weight:300;letter-spacing:-.02em;line-height:1.2}
+.ptitle h2.ar{font-size:32px;line-height:1.5;font-weight:400}
+.ptitle .psub{display:block;margin-top:2px;font-size:15px;color:var(--dim);line-height:1.4;font-variant-numeric:tabular-nums}
+
+/* bounded Arabic box: never taller than 44vh, centred by margin:auto, the lit word scrolled into view */
+.txt{flex:1;min-height:104px;max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  display:flex;padding:6px 0}
+.txt .in{width:100%;margin:auto;text-align:center;direction:rtl;font-family:var(--quran);font-size:33px;line-height:1.95;word-spacing:.06em;
+  transition:opacity .45s}
+.txt .in.s2{font-size:29px;line-height:1.9}
+.txt .in.none{font-family:var(--font);direction:ltr;font-size:17px;color:var(--dim);line-height:1.5}
+.txt .in .w{transition:color .1s}
+.txt .in .w.on{color:var(--accent)}
+.txt .in .aend{color:var(--faint);font-size:.62em;margin:0 .2em}
+.txt.recite .in{opacity:.2}
+@media (prefers-reduced-motion:reduce){.txt .in,.txt .in .w{transition:none}}
+.pinfo{flex:none;text-align:center;font-size:15px;line-height:1.45;color:var(--dim);min-height:22px;padding:4px 0;font-variant-numeric:tabular-nums}
+.pinfo .state{color:var(--text)}
+.prog{flex:none;padding:14px 0 2px;touch-action:none}
+.prog .track{position:relative;height:2px;background:var(--hair)}
+.prog .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent)}
+.prog .times{display:flex;justify-content:space-between;margin-top:8px;font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums}
+.transport{flex:none;display:flex;align-items:center;justify-content:center;padding:6px 0 2px}
+.transport button{display:flex;align-items:center;justify-content:center;width:64px;height:64px;color:var(--text)}
+.transport button:active{opacity:.5}
+.transport .play{width:88px;height:88px;margin:0 16px}
+/* the ring: fills while the block plays, drains during the silence.
+   .transport .ring must out-specify .transport button, or the 96px SVG would overflow a 64px box */
+.transport .ring{position:relative;width:96px;height:96px;margin:0 14px;display:flex;align-items:center;justify-content:center}
+.ring svg.r{position:absolute;left:0;top:0;width:96px;height:96px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:2}
+.ring .track{stroke:var(--hair)}
+.ring .fill{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:289.03;stroke-dashoffset:289.03}
+.ring .core{position:relative;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.ring:active .core{opacity:.5}
+.options{flex:none;display:flex;height:0;overflow:hidden;transition:height .2s ease}
+.options.show{height:50px;border-top:1px solid var(--hair)}
+.options button{flex:1;min-width:0;min-height:50px;font-size:17px;color:var(--dim);text-align:center;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.options button.on{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.options{transition:none}}
+.pickers{flex:none;display:flex;border-top:1px solid var(--hair);
+  margin:4px calc(-1 * (var(--pad) + var(--sar))) 0 calc(-1 * (var(--pad) + var(--sal)))}
+.pickers button{flex:1;min-width:0;min-height:56px;padding:9px 2px 8px;text-align:center}
+.pickers button + button{border-left:1px solid var(--hair)}
+.pickers .lbl{display:block;font-size:15px;line-height:1.35;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pickers .val{display:block;margin-top:1px;font-size:16px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums}
+.pickers button.open .val{color:var(--accent)}
+/* the 56px position row */
+.posrow{flex:none;display:flex;align-items:center;width:100%;min-height:56px;border-top:1px solid var(--hair);gap:10px}
+.posrow .l{flex:none;font-size:17px;color:var(--dim)}
+.posrow .v{flex:1;min-width:0;text-align:right;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums}
+.posrow .v .ar{font-size:19px;margin-left:6px}
+.posrow .c{flex:none;color:var(--faint);display:flex;align-items:center}
+.posrow .c svg{width:9px;height:16px}
+.posrow:active .v{opacity:.55}
+.dlrow{flex:none;display:flex;align-items:center;justify-content:center;min-height:48px;font-size:15px;color:var(--dim);
+  font-variant-numeric:tabular-nums}
+.dlrow:active{color:var(--text)}
+.dlrow.have{color:var(--accent)}
+
+/* ---------------- toast + boot ---------------- */
+#toast{position:fixed;left:50%;bottom:calc(var(--mini) + 26px + var(--sab));transform:translate(-50%,16px);z-index:60;
+  background:#131926;border:1px solid var(--hair);padding:12px 18px;border-radius:14px;font-size:15px;color:var(--text);
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:86vw;text-align:center;line-height:1.4}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.boot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:70;background:#05070C;display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:17px;padding:0 32px;text-align:center;line-height:1.5;transition:opacity .3s}
+.boot.gone{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{transition-duration:0s!important;animation:none!important}}
+@media (max-width:392px){.pickers .val{font-size:15px}}
+@media (max-height:700px){
+  .txt .in{font-size:30px;line-height:1.85}
+  .txt .in.s2{font-size:27px}
+  .htitle h1,.card .stitle h2{font-size:30px}
+  .ptitle h2{font-size:26px}
+  .ptitle h2.ar{font-size:28px}
+  .transport .ring{width:88px;height:88px}
+  .ring svg.r{width:88px;height:88px}
+}
+</style>
+</head>
+<body>
+<div id="boot" class="boot">Loading…</div>
+
+<div id="app">
+  <div class="bar"><button id="editBtn" class="txtbtn" aria-label="Edit tiles">Edit</button></div>
+  <div class="htitle"><h1 id="homeTitle">Mushaf</h1></div>
+  <div id="homeBody"><div id="grid" class="grid" role="list"></div></div>
+</div>
+
+<div id="mini" class="mini away">
+  <div class="mp"><i id="miniFill"></i></div>
+  <button id="miniExpand" class="expand" aria-label="Open player"></button>
+  <div class="mt"><b id="miniTitle"></b><span id="miniSub"></span></div>
+  <button id="miniPlay" class="mb" aria-label="Play or pause"></button>
+</div>
+
+<div id="sheetA" class="sheet"><div class="card">
+  <div class="hd"><button class="txtbtn close">Close</button><span class="r"></span></div>
+  <div class="stitle"><h2></h2><span class="ssub hide"></span></div>
+  <div class="tools hide"></div>
+  <div class="body"></div>
+</div></div>
+<div id="sheetB" class="sheet z2"><div class="card">
+  <div class="hd"><button class="txtbtn close">Close</button><span class="r"></span></div>
+  <div class="stitle"><h2></h2><span class="ssub hide"></span></div>
+  <div class="tools hide"></div>
+  <div class="body"></div>
+</div></div>
+
+<div id="player" class="player" aria-label="Player">
+  <div class="grab" id="grab" role="button" aria-label="Close player"><i></i></div>
+  <div class="pbody">
+
+    <section id="lv" class="view hide">
+      <div class="ptitle"><h2 id="lvTitle"></h2><span class="psub" id="lvSub"></span></div>
+      <div class="txt" id="lvTxt"><div class="in" id="lvText"></div></div>
+      <div class="pinfo" id="lvInfo"></div>
+      <div class="prog" id="lvProg"><div class="track"><div class="fill" id="lvFill"></div></div>
+        <div class="times"><span id="lvT0">0:00</span><span id="lvT1"></span></div></div>
+      <div class="transport">
+        <button id="lvPrev" aria-label="Previous"></button>
+        <button id="lvPlay" class="play" aria-label="Play or pause"></button>
+        <button id="lvNext" aria-label="Next"></button>
+      </div>
+      <div class="options" id="lvOptions" role="group" aria-label="Speed"></div>
+      <button class="dlrow" id="lvDl"></button>
+    </section>
+
+    <section id="mv" class="view hide">
+      <div class="ptitle"><h2 id="mvTitle"></h2><span class="psub" id="mvSub"></span></div>
+      <div class="txt" id="mvTxt"><div class="in" id="mvText"></div></div>
+      <div class="pinfo" id="mvStatus"></div>
+      <div class="transport">
+        <button id="mvPrev" aria-label="Previous block"></button>
+        <button id="mvPlay" class="ring" aria-label="Play or pause">
+          <svg class="r" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="46"/><circle class="fill" id="ringFill" cx="50" cy="50" r="46"/></svg>
+          <span class="core" id="mvGlyph"></span>
+        </button>
+        <button id="mvNext" aria-label="Next block"></button>
+      </div>
+      <div class="options" id="mvOptions" role="group"></div>
+      <div class="pickers" id="mvPickers"></div>
+      <button class="posrow" id="mvPos"><span class="l">Learning</span><span class="v num" id="mvPosVal"></span><span class="c"></span></button>
+    </section>
+
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
 <script>
-['a','b','c'].forEach(function(k){
-  fetch('./preview/'+k+'/index.html',{method:'HEAD',cache:'no-store'}).then(function(r){
-    if(r.ok){var el=document.getElementById(k);el.className='';el.querySelector('span').textContent='open';}
-  }).catch(function(){});
+'use strict';
+/* ============================================================================
+   Mushaf — one file. Engine and geometry from candidate c, visual grammar and
+   the dynamic-programming block split from candidate b, the fallback stop timer
+   and the fixed body from candidate a.
+   ========================================================================= */
+var BASE = './quran/';                     /* Quran data */
+var CONTENT = './content/';                /* collection manifests */
+var AUDIO_CACHE = 'mushaf-audio-v1';       /* must match sw.js */
+
+function noop() {}
+function $(id) { return document.getElementById(id); }
+function qs(sel, el) { return (el || document).querySelector(sel); }
+function qsa(sel, el) { return Array.prototype.slice.call((el || document).querySelectorAll(sel)); }
+function on(el, ev, fn, opts) { el.addEventListener(ev, fn, opts || false); }
+function once(el, ev, fn) { var h = function (e) { el.removeEventListener(ev, h); fn(e); }; el.addEventListener(ev, h); return function () { el.removeEventListener(ev, h); }; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }
+function fmtTime(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  sec = Math.floor(sec);
+  var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+function arDigits(n) { return String(n).replace(/\d/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.charAt(+d); }); }
+function fmtX(v) { return (v === 1 ? '1' : String(v)) + '×'; }
+
+var LS = {
+  pre: 'mushaf.',
+  get: function (k, d) { try { var v = localStorage.getItem(LS.pre + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set: function (k, v) { try { localStorage.setItem(LS.pre + k, JSON.stringify(v)); } catch (e) {} }
+};
+
+var KINDS = [
+  { id: 'memorize', name: 'Memorise', desc: 'Blocks, then a silence to recite back' },
+  { id: 'revise', name: 'Revise', desc: 'Pages, surah, juz or everything' },
+  { id: 'husary', name: 'Quran · Husary', desc: 'Any surah, then straight on' },
+  { id: 'reciters', name: 'Recitations', desc: 'Favourite reciters' },
+  { id: 'sharh', name: 'Sharh Usul ath-Thalatha', desc: 'Lessons' },
+  { id: 'hadith', name: 'Hadith', desc: 'Lessons' },
+  { id: 'podcasts', name: 'Podcasts', desc: 'Episodes' }
+];
+var KIND = {}; KINDS.forEach(function (k) { KIND[k.id] = k; });
+var TILE_ORDER = KINDS.map(function (k) { return k.id; });
+var DEFAULT_TILES = ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith'];
+var SPEEDS_Q = [0.5, 0.75, 1, 1.25], SPEEDS_L = [0.75, 1, 1.25, 1.5];
+var PAUSES = [0.75, 1, 1.25, 1.5], REPEATS = [1, 2, 3, 0];      /* 0 = infinite */
+var MODES = ['ayah', '2', '3', 'words', 'auto'];
+var MODE_LABEL = { ayah: 'Ayah', '2': '2 ayat', '3': '3 ayat', words: 'Words', auto: 'Auto' };
+var SOURCES = ['murattal', 'muallim'], SOURCE_LABEL = { murattal: 'Murattal', muallim: 'Muallim' };
+var COLLECTIONS = { sharh: 'sharh.json', hadith: 'hadith.json', podcasts: 'podcasts.json', reciters: 'reciters.json' };
+
+var S = {
+  layout: LS.get('layout', null),
+  pos: LS.get('pos', { s: 114, a: 1 }),
+  memo: LS.get('memo', {}),
+  listen: LS.get('listen', {}),
+  resume: LS.get('resume', {}),
+  recent: LS.get('recent', {}),
+  now: LS.get('now', null)
+};
+(function normalise() {                      /* defaults are merged, never trusted from storage */
+  var L = S.layout;
+  if (!L || !L.tiles || !L.tiles.length) L = { size: 6, tiles: DEFAULT_TILES.slice() };
+  L.size = L.size === 4 ? 4 : 6;
+  var seen = {};
+  L.tiles = L.tiles.filter(function (id) { if (!KIND[id] || seen[id]) return false; seen[id] = 1; return true; }).slice(0, L.size);
+  if (!L.tiles.length) L.tiles = DEFAULT_TILES.slice(0, L.size);
+  S.layout = L; LS.set('layout', L);
+  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'auto', source: 'murattal' };
+  for (var k in d) if (!(k in m)) m[k] = d[k];
+  if (SPEEDS_Q.indexOf(m.speed) < 0) m.speed = 1;
+  if (PAUSES.indexOf(m.pause) < 0) m.pause = 1;
+  if (REPEATS.indexOf(m.repeat) < 0) m.repeat = 2;
+  if (MODES.indexOf(m.mode) < 0) m.mode = 'auto';
+  if (SOURCES.indexOf(m.source) < 0) m.source = 'murattal';
+  delete m.text;
+  if (SPEEDS_Q.indexOf(S.listen.q) < 0) S.listen.q = 1;
+  if (SPEEDS_L.indexOf(S.listen.l) < 0) S.listen.l = 1;
+  if (!S.pos || !(S.pos.s >= 1 && S.pos.s <= 114)) S.pos = { s: 114, a: 1 };
+  if (!(S.pos.a >= 1)) S.pos.a = 1;
+})();
+function save(k) { LS.set(k, S[k]); }
+
+/* ---------------- data ---------------- */
+var D = { meta: null, words: null, timings: {}, content: {} };
+function loadJSON(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+function loadData() {
+  return Promise.all([
+    loadJSON(BASE + 'meta.json'), loadJSON(BASE + 'words.json'), loadJSON(BASE + 'husary-timings.json'),
+    loadJSON(CONTENT + 'reciters.json').catch(function () { return null; }),
+    loadJSON(CONTENT + 'sharh.json').catch(function () { return null; }),
+    loadJSON(CONTENT + 'hadith.json').catch(function () { return null; }),
+    loadJSON(CONTENT + 'podcasts.json').catch(function () { return null; })
+  ]).then(function (r) {
+    D.meta = r[0]; D.words = r[1]; D.timings.murattal = r[2];
+    D.content.reciters = r[3]; D.content.sharh = r[4]; D.content.hadith = r[5]; D.content.podcasts = r[6];
+    D.pageKeys = D.meta.pageStarts.map(keyOf); D.juzKeys = D.meta.juzStarts.map(keyOf);
+    if (S.pos.a < 1 || S.pos.a > surah(S.pos.s).ayahs) S.pos.a = 1;
+  });
+}
+function timings(src) { return D.timings[src] || null; }
+function ensureTimings(src) {
+  if (D.timings[src]) return Promise.resolve(D.timings[src]);
+  return loadJSON(BASE + 'husary-' + (src === 'muallim' ? 'muallim-' : '') + 'timings.json').then(function (t) { D.timings[src] = t; return t; });
+}
+
+/* ---------------- mushaf geometry ---------------- */
+function keyOf(str) { var p = str.split(':'); return (+p[0]) * 1000 + (+p[1]); }
+function surah(n) { return D.meta.surahs[n - 1]; }
+function refKey(s, a) { return s * 1000 + a; }
+function lastIndex(keys, key) { var lo = 0, hi = keys.length - 1, ans = 0, m; while (lo <= hi) { m = (lo + hi) >> 1; if (keys[m] <= key) { ans = m; lo = m + 1; } else hi = m - 1; } return ans; }
+function pageOf(s, a) { return lastIndex(D.pageKeys, refKey(s, a)) + 1; }
+function juzOf(s, a) { return lastIndex(D.juzKeys, refKey(s, a)) + 1; }
+function parseRef(str) { var p = str.split(':'); return { s: +p[0], a: +p[1] }; }
+function prevAyah(r) { if (r.a > 1) return { s: r.s, a: r.a - 1 }; if (r.s === 1) return { s: 1, a: 1 }; return { s: r.s - 1, a: surah(r.s - 1).ayahs }; }
+function pageStart(p) { return parseRef(D.meta.pageStarts[p - 1]); }
+function pageEnd(p) { return p >= 604 ? { s: 114, a: 6 } : prevAyah(pageStart(p + 1)); }
+function juzEnd(j) { return j >= 30 ? { s: 114, a: 6 } : prevAyah(parseRef(D.meta.juzStarts[j])); }
+function rangesBetween(from, to) {          /* inclusive, canonical order, one range per surah */
+  var out = [], s;
+  if (refKey(from.s, from.a) > refKey(to.s, to.a)) return out;
+  for (s = from.s; s <= to.s; s++) out.push({ s: s, a1: s === from.s ? from.a : 1, a2: s === to.s ? to.a : surah(s).ayahs });
+  return out;
+}
+function refStr(r) { return r.s + ':' + r.a; }
+
+/* ---------------- toast ---------------- */
+var toastTimer = 0;
+function toast(msg) {
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
+}
+
+/* ---------------- icons ---------------- */
+var ICON = {
+  play: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 5v22l19-11z" fill="currentColor"/></svg>',
+  pause: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M10 6h3.6v20H10zM18.4 6H22v20h-3.6z" fill="currentColor"/></svg>',
+  play24: '<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M9 5v22l19-11z" fill="currentColor"/></svg>',
+  pause24: '<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M10 6h3.6v20H10zM18.4 6H22v20h-3.6z" fill="currentColor"/></svg>',
+  prev: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M23 7.5 11.5 16 23 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  next: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M23 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M9 7.5 20.5 16 9 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  /* the "15" lives inside the SVG, so no DOM text anywhere drops under 15px */
+  back15: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="20.2" text-anchor="middle" font-size="9" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text></svg>',
+  fwd15: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="16" y="20.2" text-anchor="middle" font-size="9" fill="currentColor" font-family="-apple-system,Helvetica,Arial">15</text></svg>',
+  chev: '<svg viewBox="0 0 11 19" width="9" height="16" aria-hidden="true"><path d="M1.5 1.5 9.5 9.5l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  minus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9M12 7.5v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  handle: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>'
+};
+
+/* @@PLAN-BEGIN */
+/* ============================================================================
+   Block planning. Pure functions, no DOM; extracted verbatim by the test harness.
+   Inputs: T = timings entry for one surah { url, d, v:[[fromMs,toMs,[[pos,startMs,endMs],..]],..] }
+           W = words for that surah [[word,..],..]  (segment positions are 1-based into these)
+   Output: blocks { s, a1, a2, from, to, dur, kind, spans:[{a,p1,p2}], k, n }
+
+   units() is candidate c's: it merges the segments of a word the data split in two,
+   clamps the muallim file's overruns to the ayah, and makes the units tile the ayah
+   exactly — so every cut is a real word boundary and no audio is skipped or replayed.
+   The partition itself is candidate b's exact dynamic programme, run over those unit
+   boundaries instead of over raw segments.
+   ========================================================================= */
+var MushafPlan = (function () {
+  var MARK = /[ۖ-ۜ۞۩]/;                                 /* pause marks, attached to the word they follow */
+  var AUTO = { splitAbove: 16000, part: 11000, minPart: 4000, mergeWhileUnder: 8000, mergedMax: 14000, mergeCandidateMax: 16000, hardMax: 18000 };
+  var WORDS = { perBlock: 5.5, single: 7, lo: 4, hi: 7, markBonus: 1.5 };
+
+  function ayahDur(v, i) { return (v[i][1] - v[i][0]) / 1000; }
+
+  /* Time-ordered word units of one ayah (candidate c, verbatim in behaviour). */
+  function units(ayah, words) {
+    var nw = words.length, segs = ayah[2].slice().sort(function (a, b) { return a[1] - b[1]; });
+    var out = [], i, p, last, st, en;
+    for (i = 0; i < segs.length; i++) {
+      /* the muallim file has segments running past their ayah's end: clamp, drop what falls outside */
+      st = Math.max(segs[i][1], ayah[0]); en = Math.min(segs[i][2], ayah[1]);
+      if (en <= st) continue;
+      p = segs[i][0]; if (p > nw) p = nw; if (p < 1) p = 1;
+      last = out[out.length - 1];
+      /* the same position twice in a row is one word split in two, unless the union is longer than
+         any word can be (then it is the teacher repeating, and stays its own unit) */
+      if (last && last.p === p && en - last.start <= 12000) { last.end = Math.max(last.end, en); continue; }
+      out.push({ p: p, start: st, end: en });
+    }
+    if (!out.length) out.push({ p: 1, start: ayah[0], end: ayah[1] });
+    out[0].start = ayah[0];
+    for (i = 0; i < out.length - 1; i++) out[i].end = out[i + 1].start;
+    out[out.length - 1].end = ayah[1];
+    for (i = 0; i < out.length; i++) {
+      out[i].dur = (out[i].end - out[i].start) / 1000;
+      out[i].mark = MARK.test(words[out[i].p - 1] || '');
+    }
+    return out;
+  }
+
+  /* Display spans: unit runs to blocks, widened so every word of the ayah is shown exactly once
+     even where the recording repeats a phrase or a word has no segment (candidate c). */
+  function runsToBlocks(s, a, us, cuts, nw) {
+    var blocks = [], i, j, lo, hi, run, k;
+    for (i = 0; i < cuts.length - 1; i++) {
+      run = us.slice(cuts[i], cuts[i + 1]);
+      lo = Infinity; hi = -Infinity;
+      for (j = 0; j < run.length; j++) { if (run[j].p < lo) lo = run[j].p; if (run[j].p > hi) hi = run[j].p; }
+      blocks.push({ s: s, a1: a, a2: a, from: run[0].start, to: run[run.length - 1].end, kind: 'words', lo: lo, hi: hi, units: run.length });
+    }
+    blocks[0].lo = 1; blocks[blocks.length - 1].hi = nw;
+    for (i = 0; i < blocks.length - 1; i++) if (blocks[i + 1].lo > blocks[i].hi + 1) blocks[i].hi = blocks[i + 1].lo - 1;
+    for (k = 0; k < blocks.length; k++) {
+      var b = blocks[k];
+      b.dur = (b.to - b.from) / 1000; b.spans = [{ a: a, p1: b.lo, p2: b.hi }];
+      delete b.lo; delete b.hi;
+    }
+    return blocks;
+  }
+
+  /* Exact dynamic programme over the unit boundaries (candidate b's bestSplit, re-based on units).
+     cost(durationMs, unitCount, endsOnMark, isLast) -> number. Returns the chosen cut indices. */
+  function bestCuts(us, cost) {
+    var n = us.length, best = new Array(n + 1), prev = new Array(n + 1), i, j;
+    for (j = 0; j <= n; j++) { best[j] = Infinity; prev[j] = -1; }
+    best[0] = 0;
+    for (j = 1; j <= n; j++) {
+      for (i = 0; i < j; i++) {
+        if (best[i] === Infinity) continue;
+        var d = (us[j - 1].end - us[i].start), c = best[i] + cost(d, j - i, us[j - 1].mark, j === n);
+        if (c < best[j]) { best[j] = c; prev[j] = i; }
+      }
+    }
+    var cuts = [n];
+    for (j = prev[n]; j > 0; j = prev[j]) cuts.unshift(j);
+    cuts.unshift(0);
+    return cuts;
+  }
+  /* Auto: aim at 11 s. Under 4 s is heavily penalised; over 18 s is forbidden outright unless the
+     block is a single unit, which cannot be divided any further. */
+  function autoCost(d, n, mark, last) {
+    if (d > AUTO.hardMax) return (n <= 1 ? 5000 : 1e7) + d / 100;
+    if (d < AUTO.minPart) return 1000 + (AUTO.minPart - d) / 100;
+    var x = (d - AUTO.part) / 1000;
+    return x * x + (n < 3 ? 20 : 0) - (mark ? 2 : 0);
+  }
+  /* Words: 5–6 units per block, hard window 4–7 unless a single unit is all there is. */
+  function wordsCost(d, n, mark, last) {
+    if (n < 2) return 1e7;
+    var x = n - WORDS.perBlock, c = x * x - (mark ? WORDS.markBonus : 0);
+    if (n < WORDS.lo || n > WORDS.hi) c += 1e4;
+    return c;
+  }
+
+  function splitAyah(s, a, ayah, words, cost) {
+    var us = units(ayah, words);
+    if (us.length < 2) return [{ s: s, a1: a, a2: a, from: ayah[0], to: ayah[1], dur: (ayah[1] - ayah[0]) / 1000, kind: 'words', spans: [{ a: a, p1: 1, p2: words.length }], units: us.length }];
+    return runsToBlocks(s, a, us, bestCuts(us, cost), words.length);
+  }
+
+  function ayahBlock(s, v, i, W) {
+    return { s: s, a1: i + 1, a2: i + 1, from: v[i][0], to: v[i][1], dur: ayahDur(v, i), kind: 'ayah', spans: [{ a: i + 1, p1: 1, p2: W[i].length }] };
+  }
+  function merge(s, v, i0, i1, W) {                     /* ayat i0..i1 inclusive (0-based) as one block */
+    var b = { s: s, a1: i0 + 1, a2: i1 + 1, from: v[i0][0], to: v[i1][1], kind: 'ayah', spans: [] };
+    for (var i = i0; i <= i1; i++) b.spans.push({ a: i + 1, p1: 1, p2: W[i].length });
+    b.dur = (b.to - b.from) / 1000;
+    return b;
+  }
+
+  /* mode: 'ayah' | '2' | '3' | 'words' | 'auto'. Always plans a whole surah, so "block k of n"
+     counts within the surah and does not shrink when the position moves. */
+  function planBlocks(s, T, W, mode) {
+    var v = T.v, nA = v.length, out = [], i, j, d, g;
+    if (mode === '2' || mode === '3') {
+      g = mode === '2' ? 2 : 3;
+      for (i = 0; i < nA; i += g) out.push(merge(s, v, i, Math.min(i + g - 1, nA - 1), W));
+    } else if (mode === 'words') {
+      for (i = 0; i < nA; i++) {
+        if (units(v[i], W[i]).length <= WORDS.single) out.push(ayahBlock(s, v, i, W));
+        else out = out.concat(splitAyah(s, i + 1, v[i], W[i], wordsCost));
+      }
+    } else if (mode === 'auto') {
+      i = 0;
+      while (i < nA) {
+        d = ayahDur(v, i) * 1000;
+        if (d > AUTO.splitAbove) { out = out.concat(splitAyah(s, i + 1, v[i], W[i], autoCost)); i++; continue; }
+        j = i;
+        /* merge consecutive short ayat while the block stays under 8 s (candidate b's rule) */
+        while (j + 1 < nA && ayahDur(v, j + 1) * 1000 <= AUTO.mergeCandidateMax && d < AUTO.mergeWhileUnder && d + ayahDur(v, j + 1) * 1000 <= AUTO.mergedMax) { d += ayahDur(v, j + 1) * 1000; j++; }
+        if (d < AUTO.minPart && j + 1 < nA && ayahDur(v, j + 1) * 1000 <= AUTO.mergeCandidateMax && d + ayahDur(v, j + 1) * 1000 <= AUTO.hardMax) { d += ayahDur(v, j + 1) * 1000; j++; }
+        out.push(j === i ? ayahBlock(s, v, i, W) : merge(s, v, i, j, W));
+        i = j + 1;
+      }
+    } else {
+      for (i = 0; i < nA; i++) out.push(ayahBlock(s, v, i, W));
+    }
+    for (i = 0; i < out.length; i++) { out[i].k = i + 1; out[i].n = out.length; }
+    return out;
+  }
+
+  /* Index of the block that holds ayah a (the first block of that ayah). */
+  function blockIndexFor(blocks, a) {
+    var i;
+    for (i = 0; i < blocks.length; i++) if (a >= blocks[i].a1 && a <= blocks[i].a2) return i;
+    for (i = 0; i < blocks.length; i++) if (blocks[i].a1 >= a) return i;
+    return Math.max(0, blocks.length - 1);
+  }
+
+  /* Word sounding in ayah a at ms: {a, p} or null. Raw segments, so a repeated phrase
+     lights the right word both times. */
+  function wordAt(T, W, a, ms) {
+    var ayah = T.v[a - 1]; if (!ayah) return null;
+    var segs = ayah[2], i, best = null;
+    for (i = 0; i < segs.length; i++) if (segs[i][1] <= ms && ms < segs[i][2]) { best = segs[i]; break; }
+    if (!best) { for (i = 0; i < segs.length; i++) if (segs[i][1] <= ms && (!best || segs[i][1] > best[1])) best = segs[i]; }
+    if (!best) return null;
+    var p = best[0]; if (p > W[a - 1].length) p = W[a - 1].length; if (p < 1) p = 1;
+    return { a: a, p: p };
+  }
+  /* Ayah containing ms in surah T (1-based), or 0 when outside every ayah. */
+  function ayahAt(T, ms) {
+    var v = T.v, lo = 0, hi = v.length - 1, m;
+    while (lo <= hi) { m = (lo + hi) >> 1; if (ms < v[m][0]) hi = m - 1; else if (ms >= v[m][1]) lo = m + 1; else return m + 1; }
+    return 0;
+  }
+  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, wordAt: wordAt, ayahAt: ayahAt, units: units, bestCuts: bestCuts, autoCost: autoCost, wordsCost: wordsCost, AUTO: AUTO, WORDS: WORDS, MARK: MARK };
+})();
+/* @@PLAN-END */
+
+/* ============================================================================
+   Audio core: one <audio> element for the life of the page.
+   ========================================================================= */
+var audio = document.createElement('audio');
+audio.preload = 'auto';
+audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-playsinline', '');
+try { audio.preservesPitch = true; } catch (e) {}
+try { audio.webkitPreservesPitch = true; } catch (e) {}
+function silentWav() {                      /* 0.05 s of silence: unlocks the element on the first tap */
+  var n = 400, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), i;
+  function str(o, s) { for (var k = 0; k < s.length; k++) v.setUint8(o + k, s.charCodeAt(k)); }
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+  var b = '', bytes = new Uint8Array(buf);
+  for (i = 0; i < bytes.length; i++) b += String.fromCharCode(bytes[i]);
+  return 'data:audio/wav;base64,' + btoa(b);
+}
+var Core = {
+  url: null, unlocked: false, tok: 0, rate: 1, selfPause: false, blobUrl: null, fb: 0, fbTo: 0, wantPlay: false,
+  unlock: function () {
+    if (Core.unlocked || Core.url) return;
+    Core.unlocked = true;
+    try {
+      audio.src = silentWav();
+      var p = audio.play();
+      if (p && p.then) p.then(function () { if (!Core.url) { Core.selfPause = true; audio.pause(); } }, noop);
+    } catch (e) {}
+  },
+  /* A downloaded surah is played from a blob: URL out of Cache Storage (candidate b), so playback
+     never depends on Safari routing <audio> range requests through the service worker. The service
+     worker's 206 slicing stays as the fallback for anything not resolved here. */
+  resolve: function (url) {
+    if (!('caches' in window)) return Promise.resolve(url);
+    return caches.open(AUDIO_CACHE).then(function (c) { return c.match(url); }).then(function (r) {
+      if (!r) return url;
+      return r.blob().then(function (b) {
+        if (Core.blobUrl) { try { URL.revokeObjectURL(Core.blobUrl); } catch (e) {} }
+        Core.blobUrl = URL.createObjectURL(b);
+        return Core.blobUrl;
+      });
+    }).catch(function () { return url; });
+  },
+  /* Put the head at `sec` of `url` and call cb once the seek really landed. Never assume it did. */
+  cue: function (url, sec, cb) {
+    var tok = ++Core.tok, off = null;
+    function landed() { if (tok !== Core.tok) return; if (off) off(); off = null; if (cb) cb(); }
+    function doSeek() {
+      if (tok !== Core.tok) return;
+      if (!audio.seeking && audio.readyState >= 1 && Math.abs(audio.currentTime - sec) < 0.05) return landed();
+      off = once(audio, 'seeked', landed);
+      try { audio.currentTime = sec; } catch (e) {}
+    }
+    if (Core.url === url) {
+      if (audio.readyState >= 1) doSeek();
+      else { try { audio.currentTime = sec; } catch (e) {} once(audio, 'loadedmetadata', doSeek); }
+      return;
+    }
+    Core.url = url;
+    /* resolving the cached copy is asynchronous, so a play() issued before the src landed
+       has to be re-issued here — otherwise the element would still hold the unlock clip */
+    Core.resolve(url).then(function (src) {
+      if (tok !== Core.tok) return;
+      /* loading a new source pauses a playing element and fires 'pause': that one is ours,
+         not an interruption, so it must not be read as an external pause */
+      if (!audio.paused) Core.selfPause = true;
+      audio.src = src; audio.load();
+      try { audio.currentTime = sec; } catch (e) {}
+      once(audio, 'loadedmetadata', doSeek);
+      if (Core.wantPlay) Core.play();
+    });
+  },
+  play: function () {
+    Core.unlocked = true; Core.wantPlay = true;
+    try {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function (e) { if (e && e.name !== 'AbortError') toast('Tap play again'); Deck.render(true); });
+    } catch (e) {}
+  },
+  pause: function () { Core.selfPause = true; Core.wantPlay = false; try { audio.pause(); } catch (e) {} },
+  setRate: function (r) {
+    Core.rate = r;
+    try { audio.playbackRate = r; audio.defaultPlaybackRate = r; } catch (e) {}
+    if (Core.fbTo) Core.arm(Core.fbTo);          /* a rate change moves the deadline */
+  },
+  /* Candidate a's armFallback: a third stop path, for when iOS freezes rAF and timeupdate is sparse. */
+  arm: function (toSec) {
+    clearTimeout(Core.fb); Core.fbTo = toSec;
+    if (!toSec || !isFinite(toSec)) return;
+    var remain = (toSec - audio.currentTime) / (audio.playbackRate || 1) * 1000 + 60;
+    Core.fb = setTimeout(function () { tick(); if (Core.fbTo) Core.arm(Core.fbTo); }, Math.max(60, remain));
+  },
+  disarm: function () { clearTimeout(Core.fb); Core.fb = 0; Core.fbTo = 0; }
+};
+on(document, 'pointerup', function () { Core.unlock(); }, true);
+on(document, 'touchend', function () { Core.unlock(); }, true);
+on(document, 'click', function () { Core.unlock(); }, true);
+on(audio, 'loadedmetadata', function () { Core.setRate(Core.rate); });
+on(audio, 'playing', function () { Core.setRate(Core.rate); Deck.render(true); });
+/* An external pause (Siri, a call, the headphones coming out) must not be read as a finished block. */
+on(audio, 'pause', function () {
+  if (Core.selfPause) { Core.selfPause = false; Deck.render(true); return; }
+  if (Active && Active.external) Active.external();
+  Deck.render(true);
 });
+on(audio, 'error', function () { if (Core.url && audio.error && audio.error.code !== 1) toast('Could not load the audio'); });
+
+var Active = null;                          /* Listen or Memo */
+function tick() { if (Active) Active.tick(audio.currentTime, performance.now()); }
+setInterval(tick, 40);
+on(audio, 'timeupdate', tick);
+on(audio, 'ended', function () { if (Active && Active.ended) Active.ended(); });
+requestAnimationFrame(function frame() { requestAnimationFrame(frame); if (!document.hidden && window.Deck) { tick(); Deck.render(false); } });
+on(document, 'visibilitychange', function () { if (!document.hidden) { if (Active && Active.wake) Active.wake(); tick(); Deck.render(true); } });
+
+/* ---------------- Media Session ---------------- */
+var MediaSess = {
+  set: function (title, artist, album) {
+    if (!('mediaSession' in navigator)) return;
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: title, artist: artist || 'Mushaf', album: album || 'Mushaf' }); } catch (e) {}
+  },
+  state: function (playing) {
+    if (!('mediaSession' in navigator)) return;
+    try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'; } catch (e) {}
+  },
+  init: function () {
+    if (!('mediaSession' in navigator)) return;
+    var ms = navigator.mediaSession, map = {
+      play: function () { if (Active) Active.toggle(true); },
+      pause: function () { if (Active) Active.toggle(false); },
+      previoustrack: function () { if (Active) Active.prev(); },
+      nexttrack: function () { if (Active) Active.next(); },
+      seekbackward: function () { if (Active === Listen) Listen.skip(-15); },
+      seekforward: function () { if (Active === Listen) Listen.skip(15); }
+    };
+    for (var k in map) { try { ms.setActionHandler(k, map[k]); } catch (e) {} }
+  },
+  position: function (dur, pos, rate) {
+    if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+    try { if (isFinite(dur) && dur > 0) navigator.mediaSession.setPositionState({ duration: dur, position: clamp(pos, 0, dur), playbackRate: rate || 1 }); } catch (e) {}
+  }
+};
+
+/* ============================================================================
+   Listen: continuous playback — Quran ranges or a plain file.
+   ========================================================================= */
+var Listen = {
+  desc: null, ranges: null, ri: 0, T: null, W: null, from: 0, to: 0, state: 'idle', lastSave: 0, lastRecent: 0,
+  start: function (desc, opts) {
+    opts = opts || {};
+    if (Active === Memo) Memo.stop();
+    Active = Listen; Listen.desc = desc; Listen.state = 'cue';
+    S.now = { ctrl: 'listen', desc: desc }; save('now');
+    if (desc.kind === 'quran') {
+      Listen.ranges = desc.ranges;
+      Listen.playRange(opts.rangeIndex || 0, opts.startSec, !opts.paused);
+    } else {
+      Listen.T = null; Listen.W = null;
+      var sec = opts.startSec != null ? opts.startSec : (S.resume[desc.key] || 0);
+      Core.setRate(Listen.rate());
+      Core.cue(desc.url, sec, function () { Core.setRate(Listen.rate()); if (Listen.state === 'cue') Listen.state = opts.paused ? 'pause' : 'play'; Deck.render(true); });
+      if (!opts.paused) { Core.play(); Core.arm(0); } else Listen.state = 'pause';
+    }
+    if (desc.tile) { S.recent[desc.tile] = desc.recent; save('recent'); if (window.Home) Home.refresh(); }
+    MediaSess.set(desc.title, desc.sub || (desc.kind === 'quran' ? 'Mahmoud Khalil al-Husary' : ''), 'Mushaf');
+    MediaSess.state(!opts.paused);
+    Deck.render(true);
+  },
+  playRange: function (i, sec, autoplay) {
+    var r = Listen.ranges[i]; Listen.ri = i;
+    Listen.T = timings(Listen.desc.source)[String(r.s)]; Listen.W = D.words[String(r.s)];
+    Listen.from = Listen.T.v[r.a1 - 1][0] / 1000; Listen.to = Listen.T.v[r.a2 - 1][1] / 1000;
+    var at = (sec != null && sec > Listen.from + 1 && sec < Listen.to - 2) ? sec : Listen.from;
+    if (S.now && S.now.ctrl === 'listen') { S.now.ri = i; save('now'); }
+    Listen.state = 'cue';
+    Core.setRate(Listen.rate());
+    Core.cue(Listen.T.url, at, function () { Core.setRate(Listen.rate()); if (Listen.state === 'cue') { Listen.state = autoplay === false ? 'pause' : 'play'; if (autoplay !== false) Core.arm(Listen.to); } Deck.render(true); });
+    if (autoplay !== false) Core.play();
+    MediaSess.set(surah(r.s).name + ' · ' + surah(r.s).arabic, 'Mahmoud Khalil al-Husary', 'Mushaf');
+    MediaSess.state(autoplay !== false);
+  },
+  key: function () { var d = Listen.desc; if (!d) return null; return d.kind === 'quran' ? (d.remember ? 'q:' + Listen.ranges[Listen.ri].s : null) : d.key; },
+  tick: function (t, now) {
+    if (Listen.state !== 'play') return;
+    if (audio.paused && !audio.ended) return;          /* an external pause: handled by external() */
+    if (Listen.desc.kind === 'quran') {
+      if (t >= Listen.to - 0.02 || audio.ended) { Listen.nextRange(); return; }
+      if (now - Listen.lastRecent > 1500) {
+        Listen.lastRecent = now;
+        var a = MushafPlan.ayahAt(Listen.T, t * 1000);
+        if (a && Listen.desc.tile === 'husary') S.recent.husary = { s: Listen.ranges[Listen.ri].s, a: a };
+      }
+    }
+    var k = Listen.key();
+    if (k && now - Listen.lastSave > 2000) {
+      Listen.lastSave = now; S.resume[k] = Math.floor(t * 10) / 10; save('resume');
+      if (Listen.desc.tile === 'husary') save('recent');
+    }
+  },
+  nextRange: function () {
+    var k = Listen.key(); if (k) { delete S.resume[k]; save('resume'); }
+    if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, true); else Listen.finish();
+  },
+  finish: function () {
+    Core.pause(); Core.disarm(); Listen.state = 'done';
+    var k = Listen.key(); if (k) { delete S.resume[k]; save('resume'); }
+    MediaSess.state(false); Deck.render(true);
+  },
+  ended: function () { if (Listen.state !== 'play') return; if (Listen.desc.kind === 'quran') Listen.nextRange(); else Listen.finish(); },
+  external: function () {                              /* someone else paused us */
+    if (Listen.state !== 'play' && Listen.state !== 'cue') return;
+    if (audio.ended) return;
+    if (Listen.desc && Listen.desc.kind === 'quran' && audio.currentTime >= Listen.to - 0.02) return;
+    Listen.state = 'pause'; Core.disarm(); MediaSess.state(false);
+    var k = Listen.key(); if (k) { S.resume[k] = audio.currentTime; save('resume'); }
+  },
+  toggle: function (want) {
+    var playing = Listen.state === 'play' || Listen.state === 'cue';
+    if (want === undefined) want = !playing;
+    if (want) {
+      if (Listen.state === 'done') {
+        if (Listen.desc.kind === 'quran') Listen.playRange(0, null, true);
+        else { Core.cue(Listen.desc.url, 0, noop); Core.play(); Listen.state = 'play'; Core.arm(0); }
+      } else { Listen.state = 'play'; Core.play(); Core.arm(Listen.desc.kind === 'quran' ? Listen.to : 0); }
+      MediaSess.state(true);
+    } else {
+      Core.pause(); Core.disarm(); Listen.state = 'pause'; MediaSess.state(false);
+      var k = Listen.key(); if (k) { S.resume[k] = audio.currentTime; save('resume'); }
+    }
+    Deck.render(true);
+  },
+  stop: function () { Core.pause(); Core.disarm(); Listen.state = 'idle'; },
+  wake: function () { if (Listen.state === 'play' && audio.paused && !audio.ended) Listen.external(); },
+  rate: function () { var d = Listen.desc; return d && d.kind === 'file' && d.speedSet === 'l' ? S.listen.l : S.listen.q; },
+  speeds: function () { var d = Listen.desc; return d && d.kind === 'file' && d.speedSet === 'l' ? SPEEDS_L : SPEEDS_Q; },
+  setSpeed: function (v) {
+    if (Listen.desc && Listen.desc.kind === 'file' && Listen.desc.speedSet === 'l') S.listen.l = v; else S.listen.q = v;
+    save('listen'); Core.setRate(v); Deck.render(true);
+  },
+  curAyah: function () {
+    if (!Listen.T) return 0;
+    var a = MushafPlan.ayahAt(Listen.T, audio.currentTime * 1000);
+    if (!a) { var r = Listen.ranges[Listen.ri]; a = audio.currentTime < Listen.from ? r.a1 : r.a2; }
+    return a;
+  },
+  prev: function () {
+    if (!Listen.desc) return;
+    if (Listen.desc.kind !== 'quran') return Listen.skip(-15);
+    var r = Listen.ranges[Listen.ri], a = Listen.curAyah(), startOfCur = Listen.T.v[a - 1][0] / 1000;
+    if (audio.currentTime - startOfCur > 2.5 || (a === r.a1 && Listen.ri === 0)) return Listen.seekAyah(a);
+    if (a > r.a1) return Listen.seekAyah(a - 1);
+    var pr = Listen.ranges[Listen.ri - 1];
+    Listen.playRange(Listen.ri - 1, timings(Listen.desc.source)[String(pr.s)].v[pr.a2 - 1][0] / 1000, Listen.state !== 'pause');
+  },
+  next: function () {
+    if (!Listen.desc) return;
+    if (Listen.desc.kind !== 'quran') return Listen.skip(15);
+    var r = Listen.ranges[Listen.ri], a = Listen.curAyah();
+    if (a < r.a2) return Listen.seekAyah(a + 1);
+    if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, Listen.state !== 'pause'); else Listen.finish();
+  },
+  seekAyah: function (a) {
+    var wasPlaying = Listen.state !== 'pause' && Listen.state !== 'done';
+    Listen.state = 'cue';
+    Core.cue(Listen.T.url, Listen.T.v[a - 1][0] / 1000, function () { Listen.state = wasPlaying ? 'play' : 'pause'; if (wasPlaying) Core.arm(Listen.to); Deck.render(true); });
+    if (wasPlaying) Core.play();
+  },
+  skip: function (d) {
+    var dur = audio.duration;
+    try { audio.currentTime = clamp(audio.currentTime + d, 0, isFinite(dur) ? Math.max(0, dur - 0.5) : 1e9); } catch (e) {}
+    if (Listen.state === 'done') Listen.state = 'pause';
+    Deck.render(true);
+  },
+  seekFrac: function (f) {
+    f = clamp(f, 0, 1);
+    if (Listen.desc.kind === 'quran') { var sec = Listen.from + f * (Listen.to - Listen.from); try { audio.currentTime = Math.min(sec, Listen.to - 0.3); } catch (e) {} }
+    else if (isFinite(audio.duration)) { try { audio.currentTime = f * audio.duration; } catch (e) {} }
+    if (Listen.state === 'done') Listen.state = 'pause';
+  },
+  info: function () {
+    var d = Listen.desc, t = audio.currentTime;
+    var o = { ctrl: 'listen', title: d.title, sub: d.sub || '', playing: Listen.state === 'play' || Listen.state === 'cue',
+      quran: d.kind === 'quran', speed: Listen.rate(), speeds: Listen.speeds(), lecture: d.kind === 'file' && d.speedSet === 'l',
+      url: d.kind === 'quran' ? (Listen.T && Listen.T.url) : d.url, done: Listen.state === 'done', tile: d.tile };
+    if (o.quran) {
+      var r = Listen.ranges[Listen.ri], su = surah(r.s), a = Listen.curAyah();
+      o.title = su.name; o.arTitle = su.arabic; o.sub = d.sub || 'Mahmoud Khalil al-Husary';
+      o.s = r.s; o.a = a; o.page = pageOf(r.s, a);
+      o.frac = clamp((t - Listen.from) / (Listen.to - Listen.from), 0, 1);
+      o.t0 = Math.max(0, t - Listen.from); o.t1 = Listen.to - Listen.from;
+      o.info = su.name + ' · Ayah ' + a + ' · Page ' + o.page;
+      o.wordAt = MushafPlan.wordAt(Listen.T, Listen.W, a, t * 1000);
+      o.miniSub = su.name + ' · ' + r.s + ':' + a;
+    } else {
+      var dur = isFinite(audio.duration) ? audio.duration : (d.duration || 0);
+      o.arTitle = d.arTitle || '';
+      o.frac = dur ? clamp(t / dur, 0, 1) : 0; o.t0 = t; o.t1 = dur;
+      o.info = d.info || ''; o.miniSub = d.sub || '';
+    }
+    if (Listen.state === 'done') o.info = 'Finished';
+    return o;
+  }
+};
+
+/* ============================================================================
+   Memo: block → silence → repeat or advance.
+   ========================================================================= */
+var Memo = {
+  plan: null, planKey: '', bi: 0, rep: 0, state: 'idle', block: null, T: null, W: null,
+  wallStart: 0, played: 0, waitEnd: 0, waitLen: 0, pausedRemain: 0, pausedFrom: null, lastFrac: 0, recueing: false,
+  /* The tile is a hotkey: an existing session is resumed, never restarted. */
+  open: function () {
+    if (Active === Memo && Memo.state !== 'idle' && Memo.state !== 'done' && Memo.plan) {
+      if (Memo.state === 'paused') Memo.toggle(true);
+      return;
+    }
+    Memo.start();
+  },
+  start: function (opts) {
+    opts = opts || {};
+    if (Active === Listen) Listen.stop();
+    Active = Memo;
+    S.now = { ctrl: 'memo' }; save('now');
+    Memo.withSource(function () {
+      Memo.buildPlan();
+      Memo.rep = 0;
+      if (opts.paused) { Memo.block = Memo.plan[Memo.bi]; Memo.state = 'paused'; Memo.pausedFrom = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Deck.render(true); }
+      else Memo.begin(true);
+    });
+    MediaSess.set('Memorise · ' + surah(S.pos.s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+    Deck.render(true);
+  },
+  withSource: function (cb) {
+    if (timings(S.memo.source)) return cb();
+    toast('Loading ' + SOURCE_LABEL[S.memo.source] + '…');
+    ensureTimings(S.memo.source).then(cb, function () { toast('Could not load ' + SOURCE_LABEL[S.memo.source]); S.memo.source = 'murattal'; save('memo'); cb(); });
+  },
+  buildPlan: function () {
+    Memo.T = timings(S.memo.source)[String(S.pos.s)]; Memo.W = D.words[String(S.pos.s)];
+    Memo.plan = MushafPlan.planBlocks(S.pos.s, Memo.T, Memo.W, S.memo.mode);
+    Memo.planKey = S.pos.s + '/' + S.memo.mode + '/' + S.memo.source;
+    Memo.bi = MushafPlan.blockIndexFor(Memo.plan, S.pos.a);
+  },
+  begin: function (autoplay) {
+    var b = Memo.plan[Memo.bi]; Memo.block = b;
+    Memo.state = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Memo.recueing = false;
+    Core.disarm();
+    if (S.pos.s !== b.s || S.pos.a !== b.a1) { S.pos = { s: b.s, a: b.a1 }; save('pos'); if (window.Home) Home.refresh(); }
+    Core.setRate(S.memo.speed);          /* before the load: a fresh file starts at defaultPlaybackRate */
+    Core.cue(Memo.T.url, b.from / 1000, function () { Core.setRate(S.memo.speed); });
+    if (autoplay) { Core.play(); MediaSess.state(true); } else { Memo.state = 'paused'; Memo.pausedFrom = 'cue'; MediaSess.state(false); }
+    Deck.render(true);
+  },
+  /* the longest the audio of this block can really have taken, in wall ms */
+  cap: function () { var b = Memo.block; return b ? (b.dur / S.memo.speed) * 1000 + 500 : 1e9; },
+  startWait: function (now) {
+    Memo.waitLen = Math.max(400, S.memo.pause * Memo.played);
+    Memo.waitEnd = now + Memo.waitLen;
+    Memo.state = 'wait'; Memo.lastFrac = 1;
+    Core.disarm(); MediaSess.state(false);
+  },
+  tick: function (t, now) {
+    var b = Memo.block; if (!b) return;
+    var from = b.from / 1000, to = b.to / 1000;
+    if (Memo.state === 'cue') {
+      if (audio.paused) return;
+      if (t >= from - 0.05 && t < to) { Memo.state = 'play'; Memo.wallStart = now; Core.arm(to); Deck.render(true); }
+      else if ((t < from - 0.6 || t >= to) && !Memo.recueing && audio.readyState >= 1) {
+        Memo.recueing = true; Core.cue(Memo.T.url, from, function () { Memo.recueing = false; });
+      }
+      return;
+    }
+    if (Memo.state === 'play') {
+      if (t >= to - 0.02 || audio.ended) {
+        Core.pause();
+        Memo.played = Math.min(Memo.played + (now - Memo.wallStart), Memo.cap());
+        Memo.startWait(now);
+        Deck.render(true);
+        return;
+      }
+      if (audio.paused) Memo.external();      /* a pause event we somehow missed */
+      return;
+    }
+    if (Memo.state === 'wait' && now >= Memo.waitEnd) Memo.advance();
+  },
+  ended: function () { if (Memo.state === 'play' || Memo.state === 'cue') Memo.tick(Memo.block.to / 1000, performance.now()); },
+  external: function () {
+    var b = Memo.block; if (!b) return;
+    if (audio.ended) return;
+    if (Memo.state !== 'play' && Memo.state !== 'cue') return;
+    if (audio.currentTime >= b.to / 1000 - 0.02) return;     /* that was the block ending, not an interruption */
+    if (Memo.state === 'play') Memo.played = Math.min(Memo.played + (performance.now() - Memo.wallStart), Memo.cap());
+    Memo.pausedFrom = Memo.state === 'play' ? 'play' : 'cue';
+    Memo.state = 'paused'; Core.disarm(); MediaSess.state(false);
+    Deck.render(true);
+  },
+  advance: function () {
+    Memo.rep++;
+    if (S.memo.repeat !== 0 && Memo.rep >= S.memo.repeat) {
+      Memo.rep = 0; Memo.bi++;
+      if (Memo.bi >= Memo.plan.length && !Memo.nextSurah()) {
+        Memo.bi = Memo.plan.length - 1; Memo.state = 'done'; Memo.lastFrac = 0; MediaSess.state(false); Deck.render(true); return;
+      }
+    }
+    Memo.begin(true);
+  },
+  nextSurah: function () {                   /* he memorises from the back: after surah n comes n-1 */
+    var s = S.pos.s - 1; if (s < 1) return false;
+    S.pos = { s: s, a: 1 }; save('pos');
+    Memo.buildPlan(); Memo.bi = 0;
+    MediaSess.set('Memorise · ' + surah(s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+    if (window.Home) Home.refresh();
+    return true;
+  },
+  toggle: function (want) {
+    var now = performance.now(), running = Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue';
+    if (want === undefined) want = !running;
+    if (!want) {
+      if (Memo.state === 'play') { Core.pause(); Memo.played = Math.min(Memo.played + (now - Memo.wallStart), Memo.cap()); Memo.pausedFrom = 'play'; Memo.state = 'paused'; }
+      else if (Memo.state === 'wait') { Memo.pausedRemain = Memo.waitEnd - now; Memo.pausedFrom = 'wait'; Memo.state = 'paused'; }
+      else if (Memo.state === 'cue') { Core.pause(); Memo.pausedFrom = 'cue'; Memo.state = 'paused'; }
+      Core.disarm(); MediaSess.state(false);
+    } else {
+      if (Memo.state === 'paused') {
+        if (Memo.pausedFrom === 'wait') { Memo.waitEnd = now + Memo.pausedRemain; Memo.state = 'wait'; }
+        else { Memo.state = 'cue'; Core.play(); }
+        MediaSess.state(true);
+      } else if (Memo.state === 'done' || Memo.state === 'idle') {
+        if (!Memo.plan) Memo.buildPlan();
+        Memo.bi = 0; Memo.rep = 0; Memo.begin(true);
+      }
+    }
+    Deck.render(true);
+  },
+  stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; },
+  prev: function () {
+    if (!Memo.plan) return;
+    if (Memo.bi > 0 && (Memo.state === 'cue' || (audio.currentTime - Memo.block.from / 1000) < 1.5)) Memo.bi--;
+    Memo.rep = 0; Memo.begin(true);
+  },
+  next: function () {
+    if (!Memo.plan) return;
+    if (Memo.bi + 1 < Memo.plan.length) { Memo.bi++; Memo.rep = 0; Memo.begin(true); }
+    else if (Memo.nextSurah()) { Memo.rep = 0; Memo.begin(true); }
+  },
+  rebuild: function () {                     /* mode, source or position changed */
+    var running = Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue';
+    Memo.withSource(function () {
+      Memo.buildPlan(); Memo.rep = 0;
+      if (Active === Memo && running) Memo.begin(true);
+      else { Memo.block = Memo.plan[Memo.bi]; Memo.state = Active === Memo ? 'paused' : 'idle'; Memo.pausedFrom = 'cue'; Memo.lastFrac = 0; Deck.render(true); }
+    });
+  },
+  setPosition: function (s, a) {
+    S.pos = { s: s, a: a }; save('pos');
+    if (window.Home) Home.refresh();
+    Memo.rebuild();
+    MediaSess.set('Memorise · ' + surah(s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+  },
+  set: function (k, v) {
+    S.memo[k] = v; save('memo');
+    if (k === 'speed') { if (Active === Memo) Core.setRate(v); Deck.render(true); return; }
+    if (k === 'mode' || k === 'source') { Memo.rebuild(); return; }
+    Deck.render(true);
+  },
+  /* Back from the background: trust the audio clock and the plan, not frozen timers. */
+  wake: function () {
+    var now = performance.now(), t = audio.currentTime, b = Memo.block;
+    if (!b) return;
+    var to = b.to / 1000;
+    if (Memo.state === 'play' || Memo.state === 'cue') {
+      if (t >= to - 0.02 || audio.ended) {
+        if (!audio.paused) Core.pause();
+        if (Memo.state === 'play') { Memo.played = Math.min(Memo.played + (now - Memo.wallStart), Memo.cap()); Memo.startWait(now); }
+        else { Memo.state = 'paused'; Memo.pausedFrom = 'cue'; }
+      } else if (audio.paused) {
+        Memo.external();                     /* paused mid-block by something else: not a recite silence */
+      }
+    } else if (Memo.state === 'wait' && now >= Memo.waitEnd) Memo.advance();
+  },
+  frac: function (now, t) {
+    var b = Memo.block; if (!b) return 0;
+    if (Memo.state === 'play' || Memo.state === 'cue') { var f = clamp((t * 1000 - b.from) / (b.to - b.from), 0, 1); Memo.lastFrac = f; return f; }
+    if (Memo.state === 'wait') { var g = clamp((Memo.waitEnd - now) / Memo.waitLen, 0, 1); Memo.lastFrac = g; return g; }
+    return Memo.lastFrac;
+  },
+  info: function () {
+    var b = Memo.block, now = performance.now(), t = audio.currentTime, su = surah(S.pos.s);
+    var o = { ctrl: 'memo', state: Memo.state, block: b, frac: Memo.frac(now, t),
+      running: Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue', wait: Memo.state === 'wait' };
+    o.title = su.name; o.arTitle = su.arabic;
+    o.where = b ? (b.a1 === b.a2 ? 'Ayah ' + b.a1 : 'Ayat ' + b.a1 + '–' + b.a2) : 'Ayah ' + S.pos.a;
+    o.sub = o.where + ' of ' + su.ayahs + ' · Page ' + pageOf(S.pos.s, S.pos.a) + ' · Juz ' + juzOf(S.pos.s, S.pos.a);
+    if (b) {
+      var a = (Memo.state === 'play' || Memo.state === 'cue') ? MushafPlan.ayahAt(Memo.T, t * 1000) : 0;
+      o.wordAt = a >= b.a1 && a <= b.a2 ? MushafPlan.wordAt(Memo.T, Memo.W, a, t * 1000) : null;
+      var repTxt = S.memo.repeat === 0 ? 'Repeat ' + (Memo.rep + 1) : 'Repeat ' + (Memo.rep + 1) + ' of ' + S.memo.repeat;
+      var blk = 'Block ' + b.k + ' of ' + b.n;
+      if (Memo.state === 'wait') o.status = '<span class="state">Recite</span> · ' + Math.ceil((Memo.waitEnd - now) / 1000) + ' s · ' + blk;
+      else if (Memo.state === 'done') o.status = '<span class="state">Done</span> · ' + blk;
+      else if (Memo.state === 'paused') o.status = '<span class="state">Paused</span> · ' + blk + ' · ' + repTxt;
+      else o.status = '<span class="state">Listen</span> · ' + blk + ' · ' + repTxt;
+      o.veil = Memo.state === 'wait';
+      o.miniSub = (Memo.state === 'wait' ? 'Recite · ' : '') + su.name + ' · ' + S.pos.s + ':' + b.a1;
+    } else { o.status = ''; o.miniSub = su.name + ' · ' + S.pos.s + ':' + S.pos.a; }
+    return o;
+  }
+};
+
+/* ============================================================================
+   Home: the typographic grid, its statuses, and B's Control-Center edit list.
+   ========================================================================= */
+var Home = {
+  editing: false,
+  el: { body: $('homeBody'), grid: $('grid'), editBtn: $('editBtn'), title: $('homeTitle') },
+  playingTile: function () {
+    if (Active === Memo && Memo.state !== 'idle' && Memo.state !== 'done') return 'memorize';
+    if (Active === Listen && Listen.desc && (Listen.state === 'play' || Listen.state === 'cue')) return Listen.desc.tile || null;
+    return null;
+  },
+  status: function (id) {
+    if (!D.meta) return '';
+    var su = surah(S.pos.s), r, c, n;
+    switch (id) {
+      case 'memorize': return esc(su.name) + ' <span class="ar">' + esc(su.arabic) + '</span> · ' + S.pos.s + ':' + S.pos.a;
+      case 'revise': n = 604 - pageOf(S.pos.s, S.pos.a) + 1; return 'From ' + refStr(S.pos) + ' · ' + n + (n === 1 ? ' page' : ' pages');
+      case 'husary':
+        r = S.recent.husary;
+        return r && r.s ? esc(surah(r.s).name) + ' · ' + r.s + ':' + r.a : '114 surahs';
+      default:
+        c = D.content[id]; r = S.recent[id];
+        if (r && r.title) return esc(r.title);
+        if (!c) return 'Not loaded';
+        n = c.items.filter(function (it) { return it.url; }).length;
+        if (id === 'reciters') return c.items.length + ' recitations';
+        return n ? n + ' of ' + c.items.length + ' ready' : c.items.length + ' coming';
+    }
+  },
+  render: function () {
+    if (Home.editing) return Home.renderEdit();
+    var L = S.layout, playing = Home.playingTile(), html = '', i;
+    Home.el.body.classList.remove('scroll');
+    Home.el.title.textContent = 'Mushaf';
+    Home.el.editBtn.textContent = 'Edit';
+    for (i = 0; i < L.size; i++) {
+      var id = L.tiles[i];
+      if (!id) { html += '<div class="tile blank"></div>'; continue; }
+      html += '<div class="tile' + (playing === id ? ' playing' : '') + '" data-id="' + id + '">' +
+        '<button class="tap" data-go="' + id + '" aria-label="' + esc(KIND[id].name) + '"></button>' +
+        '<span class="name">' + esc(KIND[id].name) + '</span>' +
+        '<span class="status" data-status="' + id + '">' + Home.status(id) + '</span>' +
+        (id === 'revise' ? '' : '<button class="chev" data-list="' + id + '" aria-label="Open ' + esc(KIND[id].name) + ' list">' + ICON.chev + '</button>') +
+        '</div>';
+    }
+    Home.el.body.innerHTML = '<div id="grid" class="grid' + (L.size === 4 ? ' four' : '') + '" role="list">' + html + '</div>';
+    Home.el.grid = $('grid');
+  },
+  refresh: function () {
+    if (Home.editing) return;
+    var playing = Home.playingTile();
+    qsa('[data-status]').forEach(function (el) {
+      var id = el.getAttribute('data-status'), h = Home.status(id);
+      if (el.innerHTML !== h) el.innerHTML = h;
+      var tile = el.parentNode;
+      if (tile && tile.classList) tile.classList.toggle('playing', playing === id);
+    });
+  },
+  renderEdit: function () {
+    var L = S.layout, b = Home.el.body, i;
+    Home.el.title.textContent = 'Tiles';
+    Home.el.editBtn.textContent = 'Done';
+    b.classList.add('scroll');
+    var html = '<div class="sizerow"><span class="lbl">Grid</span><div class="seg" id="sizeSeg" role="radiogroup" aria-label="Grid size">' +
+      '<button data-size="4" role="radio" aria-checked="' + (L.size === 4) + '"' + (L.size === 4 ? ' class="on"' : '') + '>4</button>' +
+      '<button data-size="6" role="radio" aria-checked="' + (L.size === 6) + '"' + (L.size === 6 ? ' class="on"' : '') + '>6</button></div></div>';
+    var shown = L.tiles.slice(0, L.size);
+    html += '<div class="elist" id="elist">';
+    shown.forEach(function (id) {
+      html += '<div class="erow" data-id="' + id + '">' +
+        '<button class="pm" data-rm="' + id + '" aria-label="Remove ' + esc(KIND[id].name) + '">' + ICON.minus + '</button>' +
+        '<span class="nm">' + esc(KIND[id].name) + '</span>' +
+        '<span class="hd" data-handle="' + id + '" aria-label="Reorder ' + esc(KIND[id].name) + '">' + ICON.handle + '</span></div>';
+    });
+    html += '</div>';
+    var rest = TILE_ORDER.filter(function (t) { return shown.indexOf(t) < 0; });
+    if (rest.length) {
+      var full = shown.length >= L.size;
+      html += '<div class="sect">More tiles</div>';
+      rest.forEach(function (id) {
+        html += '<div class="erow">' +
+          '<button class="pm" data-add="' + id + '"' + (full ? ' disabled' : '') + ' aria-label="Add ' + esc(KIND[id].name) + '">' + ICON.plus + '</button>' +
+          '<span class="nm">' + esc(KIND[id].name) + '</span></div>';
+      });
+      if (full) html += '<div class="hint">' + (L.size === 4 ? 'All 4 places are taken. Remove one, or choose 6.' : 'All 6 places are taken. Remove one to make room.') + '</div>';
+    }
+    b.innerHTML = html;
+    Home.wireEdit();
+  },
+  wireEdit: function () {
+    var L = S.layout, list = $('elist'), ROW = 56, drag = null;
+    /* pointer-event drag on the handle: HTML5 drag-and-drop does not exist on iOS Safari.
+       Dedicated rows, never the tiles themselves — those overlap at 375. */
+    function startDrag(ev, row) {
+      if (drag) return;
+      ev.preventDefault();
+      var rows = Array.prototype.slice.call(list.children), from = rows.indexOf(row);
+      list.style.height = (rows.length * ROW) + 'px'; list.classList.add('drag');
+      rows.forEach(function (r, i) { r.style.transform = 'translateY(' + (i * ROW) + 'px)'; });
+      drag = { row: row, from: from, to: from, y0: ev.clientY, id: ev.pointerId, rows: rows };
+      row.classList.add('lift');
+      var cap = ev.currentTarget;
+      try { cap.setPointerCapture(ev.pointerId); } catch (e) {}
+      function move(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        var y = drag.from * ROW + (e.clientY - drag.y0);
+        drag.row.style.transform = 'translateY(' + y + 'px)';
+        var to = clamp(Math.round(y / ROW), 0, rows.length - 1);
+        if (to !== drag.to) {
+          drag.to = to;
+          var order = rows.slice(); order.splice(drag.from, 1); order.splice(to, 0, drag.row);
+          order.forEach(function (r, i) { if (r !== drag.row) r.style.transform = 'translateY(' + (i * ROW) + 'px)'; });
+        }
+      }
+      function up(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        cap.removeEventListener('pointermove', move); cap.removeEventListener('pointerup', up); cap.removeEventListener('pointercancel', up);
+        var order = rows.slice(); order.splice(drag.from, 1); order.splice(drag.to, 0, drag.row);
+        var ids = order.map(function (r) { return r.getAttribute('data-id'); });
+        L.tiles = ids.concat(L.tiles.filter(function (t) { return ids.indexOf(t) < 0; }));
+        drag = null; save('layout'); Home.renderEdit();
+      }
+      cap.addEventListener('pointermove', move); cap.addEventListener('pointerup', up); cap.addEventListener('pointercancel', up);
+    }
+    qsa('[data-handle]', list).forEach(function (h) { on(h, 'pointerdown', function (e) { startDrag(e, h.parentNode); }); });
+    Home.startDrag = startDrag;
+  },
+  setEditing: function (v) {
+    Home.editing = v;
+    Home.render();
+    if (!v) Home.el.body.scrollTop = 0;
+  },
+  init: function () {
+    on(Home.el.editBtn, 'click', function () { Home.setEditing(!Home.editing); });
+    /* one delegated handler for the life of the page: re-rendering the list never adds another */
+    on(Home.el.body, 'click', function (e) {
+      var t;
+      if (Home.editing) {
+        var L = S.layout;
+        t = e.target.closest ? e.target.closest('[data-size],[data-rm],[data-add]') : null;
+        if (!t || t.disabled) return;
+        var size = t.getAttribute('data-size'), rm = t.getAttribute('data-rm'), add = t.getAttribute('data-add');
+        if (size) { var n = +size; if (L.size === n) return; L.size = n; if (L.tiles.length > n) L.tiles = L.tiles.slice(0, n); }
+        else if (rm) { var k = L.tiles.indexOf(rm); if (k < 0) return; L.tiles.splice(k, 1); }
+        else if (add) { if (L.tiles.indexOf(add) >= 0 || L.tiles.length >= L.size) return; L.tiles.push(add); }
+        save('layout'); Home.renderEdit();
+        return;
+      }
+      if (!D.meta) return;
+      t = e.target.closest ? e.target.closest('[data-go],[data-list]') : null; if (!t) return;
+      var go = t.getAttribute('data-go');
+      if (go) { if (Actions[go]) Actions[go](); return; }
+      var li = t.getAttribute('data-list');
+      if (li && Lists[li]) Lists[li]();
+    });
+  }
+};
+
+/* ============================================================================
+   Deck: the docked mini player and the full player it expands into.
+   ========================================================================= */
+function setHTML(el, html) { if (el.__v !== html) { el.__v = html; el.innerHTML = html; } }
+function setText(el, txt) { if (el.__v !== txt) { el.__v = txt; el.textContent = txt; } }
+function wordsHTML(block) {
+  var W = D.words[String(block.s)], html = '', n = 0;
+  block.spans.forEach(function (sp) {
+    var words = W[sp.a - 1], p;
+    for (p = sp.p1; p <= sp.p2; p++) { html += '<span class="w" data-a="' + sp.a + '" data-p="' + p + '">' + esc(words[p - 1]) + '</span> '; n++; }
+    if (sp.p2 >= words.length) html += '<span class="aend">﴿' + arDigits(sp.a) + '﴾</span> ';
+  });
+  return { html: html, n: n };
+}
+var PICKERS = [
+  { k: 'speed', label: 'Speed', values: SPEEDS_Q, fmt: fmtX },
+  { k: 'pause', label: 'Pause', values: PAUSES, fmt: fmtX },
+  { k: 'repeat', label: 'Repeat', values: REPEATS, fmt: function (v) { return v === 0 ? '∞' : String(v); } },
+  { k: 'mode', label: 'Block', values: MODES, fmt: function (v) { return MODE_LABEL[v]; } },
+  { k: 'source', label: 'Source', values: SOURCES, fmt: function (v) { return SOURCE_LABEL[v]; } }
+];
+var Deck = {
+  open: false, textKey: null, lit: null, openPicker: null, pickKey: null, lastTile: null, homeAt: 0, el: {},
+  init: function () {
+    var E = Deck.el;
+    ['mini', 'miniTitle', 'miniSub', 'miniFill', 'miniPlay', 'miniExpand', 'player', 'grab',
+      'lv', 'lvTitle', 'lvSub', 'lvTxt', 'lvText', 'lvInfo', 'lvProg', 'lvFill', 'lvT0', 'lvT1', 'lvPrev', 'lvPlay', 'lvNext', 'lvOptions', 'lvDl',
+      'mv', 'mvTitle', 'mvSub', 'mvTxt', 'mvText', 'mvStatus', 'mvPrev', 'mvPlay', 'mvNext', 'ringFill', 'mvGlyph', 'mvOptions', 'mvPickers', 'mvPos', 'mvPosVal'
+    ].forEach(function (id) { E[id] = $(id); });
+    setHTML(qs('.c', E.mvPos), ICON.chev);
+    on(E.miniExpand, 'click', function () { Deck.show(); });
+    on(E.miniPlay, 'click', function (e) { e.stopPropagation(); Deck.toggle(); });
+    on(E.lvPlay, 'click', function () { Deck.toggle(); });
+    on(E.mvPlay, 'click', function () { Deck.toggle(); });
+    on(E.lvPrev, 'click', function () { if (Active) Active.prev(); });
+    on(E.lvNext, 'click', function () { if (Active) Active.next(); });
+    on(E.mvPrev, 'click', function () { if (Active === Memo) Memo.prev(); });
+    on(E.mvNext, 'click', function () { if (Active === Memo) Memo.next(); });
+    on(E.lvOptions, 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-v]') : null;
+      if (b && Active === Listen) Listen.setSpeed(parseFloat(b.getAttribute('data-v')));
+    });
+    on(E.lvDl, 'click', function () { var i = Active === Listen ? Listen.info() : null; if (i && i.url) DL.download(i.url); });
+    on(E.mvPickers, 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-k]') : null; if (!b) return;
+      var k = b.getAttribute('data-k');
+      Deck.openPicker = Deck.openPicker === k ? null : k;
+      Deck.pickKey = null; Deck.render(true);
+    });
+    on(E.mvOptions, 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-v]') : null; if (!b || !Deck.openPicker) return;
+      var k = Deck.openPicker, raw = b.getAttribute('data-v');
+      Memo.set(k, (k === 'mode' || k === 'source') ? raw : parseFloat(raw));
+      Deck.pickKey = null; Deck.render(true);
+    });
+    on(E.mvPos, 'click', function () { showPositionPicker(); });
+    /* grabber: a tap or a pull of more than 70px collapses the player back to the mini bar */
+    var gy = null;
+    on(E.grab, 'pointerdown', function (e) { gy = e.clientY; try { E.grab.setPointerCapture(e.pointerId); } catch (err) {} });
+    on(E.grab, 'pointermove', function (e) {
+      if (gy === null) return;
+      var dy = Math.max(0, e.clientY - gy);
+      E.player.style.transition = 'none'; E.player.style.transform = 'translateY(' + dy + 'px)';
+    });
+    on(E.grab, 'pointerup', function (e) {
+      if (gy === null) return;
+      var dy = e.clientY - gy; gy = null;
+      E.player.style.transition = ''; E.player.style.transform = '';
+      if (dy > 70 || dy < 8) Deck.hide();
+    });
+    on(E.grab, 'pointercancel', function () { gy = null; E.player.style.transition = ''; E.player.style.transform = ''; });
+    /* scrub the listening progress line */
+    var sc = false;
+    function scrub(e) { var r = qs('.track', E.lvProg).getBoundingClientRect(); if (Active === Listen) Listen.seekFrac((e.clientX - r.left) / r.width); }
+    on(E.lvProg, 'pointerdown', function (e) { sc = true; try { E.lvProg.setPointerCapture(e.pointerId); } catch (err) {} scrub(e); });
+    on(E.lvProg, 'pointermove', function (e) { if (sc) scrub(e); });
+    on(E.lvProg, 'pointerup', function () { sc = false; });
+    on(E.lvProg, 'pointercancel', function () { sc = false; });
+  },
+  show: function () { Deck.open = true; Deck.el.player.classList.add('show'); Deck.render(true); },
+  hide: function () { Deck.open = false; Deck.el.player.classList.remove('show'); },
+  toggle: function () {
+    if (Active) return Active.toggle();
+    if (!S.now || !D.meta) return;
+    if (S.now.ctrl === 'memo') { Memo.start(); return; }
+    var d = S.now.desc; if (!d) return;
+    if (d.kind === 'quran') {
+      var ri = Math.min(S.now.ri || 0, d.ranges.length - 1), key = d.remember ? 'q:' + d.ranges[ri].s : null;
+      Listen.start(d, { rangeIndex: ri, startSec: key ? S.resume[key] : null });
+    } else Listen.start(d);
+  },
+  /* what the bar shows after a reload, before anything has been played this session */
+  resting: function () {
+    if (!S.now || !D.meta) return null;
+    if (S.now.ctrl === 'memo') {
+      var su = surah(S.pos.s);
+      return { ctrl: 'memo', resting: true, title: su.name, arTitle: su.arabic, where: 'Ayah ' + S.pos.a,
+        sub: 'Ayah ' + S.pos.a + ' of ' + su.ayahs + ' · Page ' + pageOf(S.pos.s, S.pos.a) + ' · Juz ' + juzOf(S.pos.s, S.pos.a),
+        miniSub: su.name + ' · ' + refStr(S.pos), frac: 0, status: '<span class="state">Ready</span>', running: false };
+    }
+    var d = S.now.desc; if (!d) return null;
+    var o = { ctrl: 'listen', resting: true, title: d.title, sub: d.sub || '', arTitle: d.arTitle || '', quran: d.kind === 'quran',
+      playing: false, frac: 0, t0: 0, t1: d.duration || 0, speed: 1, speeds: SPEEDS_Q, info: d.info || '', miniSub: d.sub || '', url: d.url, tile: d.tile };
+    if (o.quran) {
+      var ri = Math.min(S.now.ri || 0, d.ranges.length - 1), r = d.ranges[ri], su2 = surah(r.s);
+      o.title = su2.name; o.arTitle = su2.arabic; o.sub = d.sub || 'Mahmoud Khalil al-Husary';
+      o.miniSub = su2.name + ' · ' + r.s + ':' + r.a1; o.info = su2.name;
+      o.url = timings(d.source) ? timings(d.source)[String(r.s)].url : null;
+      o.s = r.s; o.a = r.a1;
+    } else { o.lecture = d.speedSet === 'l'; o.speeds = d.speedSet === 'l' ? SPEEDS_L : SPEEDS_Q; }
+    return o;
+  },
+  render: function (force) {
+    var E = Deck.el, info = Active ? Active.info() : Deck.resting(), now = performance.now();
+    /* keep the home's playing pill and statuses current without touching the DOM every frame */
+    var pt = Home.playingTile();
+    if (pt !== Deck.lastTile || now - (Deck.homeAt || 0) > 800) { Deck.lastTile = pt; Deck.homeAt = now; Home.refresh(); }
+    if (!info) { E.mini.classList.add('away'); Home.el.body.classList.remove('pad'); return; }
+    E.mini.classList.remove('away');
+    if (!Home.editing) Home.el.body.classList.add('pad');
+    var busy = info.ctrl === 'memo' ? info.running : info.playing;
+    setText(E.miniTitle, info.ctrl === 'memo' ? 'Memorise' : info.title);
+    setText(E.miniSub, info.miniSub || '');
+    E.miniFill.style.width = (info.frac * 100).toFixed(2) + '%';
+    setHTML(E.miniPlay, busy ? ICON.pause24 : ICON.play24);
+    if (!Deck.open) return;
+    var memo = info.ctrl === 'memo';
+    E.lv.classList.toggle('hide', memo); E.mv.classList.toggle('hide', !memo);
+    if (memo) Deck.renderMemo(info, busy); else Deck.renderListen(info, busy);
+  },
+  renderListen: function (info, busy) {
+    var E = Deck.el;
+    E.lvTitle.classList.toggle('ar', false);
+    setText(E.lvTitle, info.title);
+    setText(E.lvSub, info.sub || '');
+    if (info.quran && info.a) {
+      var key = 'L' + info.s + ':' + info.a;
+      if (Deck.textKey !== key) {
+        Deck.textKey = key; Deck.lit = null;
+        var r = wordsHTML({ s: info.s, spans: [{ a: info.a, p1: 1, p2: D.words[String(info.s)][info.a - 1].length }] });
+        E.lvText.className = 'in' + (r.n > 34 ? ' s2' : '');
+        E.lvText.innerHTML = r.html; E.lvTxt.scrollTop = 0;
+      }
+      Deck.light(E.lvText, E.lvTxt, info.wordAt);
+    } else {
+      var k2 = 'X' + (info.arTitle || info.title);
+      if (Deck.textKey !== k2) {
+        Deck.textKey = k2; Deck.lit = null;
+        if (info.arTitle) { E.lvText.className = 'in'; E.lvText.textContent = info.arTitle; }
+        else { E.lvText.className = 'in none'; E.lvText.textContent = info.sub || ''; }
+      }
+    }
+    setText(E.lvInfo, info.info || '');
+    E.lvFill.style.width = (info.frac * 100).toFixed(2) + '%';
+    setText(E.lvT0, fmtTime(info.t0));
+    setText(E.lvT1, info.t1 ? '−' + fmtTime(Math.max(0, info.t1 - info.t0)) : '');
+    setHTML(E.lvPlay, busy ? ICON.pause : ICON.play);
+    setHTML(E.lvPrev, info.quran ? ICON.prev : ICON.back15);
+    setHTML(E.lvNext, info.quran ? ICON.next : ICON.fwd15);
+    E.lvPrev.setAttribute('aria-label', info.quran ? 'Previous ayah' : 'Back 15 seconds');
+    E.lvNext.setAttribute('aria-label', info.quran ? 'Next ayah' : 'Forward 15 seconds');
+    var sp = '';
+    (info.speeds || SPEEDS_Q).forEach(function (v) { sp += '<button data-v="' + v + '"' + (v === info.speed ? ' class="on"' : '') + '>' + fmtX(v) + '</button>'; });
+    setHTML(E.lvOptions, sp);
+    E.lvOptions.classList.add('show');
+    var st = info.url ? DL.state(info.url) : null;
+    E.lvDl.disabled = !info.url;
+    E.lvDl.classList.toggle('have', st === 'done');
+    setText(E.lvDl, !info.url ? '' : st === 'done' ? 'Available offline' : (st !== 'none' && st !== null) ? 'Downloading ' + st + '%' : 'Download for offline');
+    if (Active === Listen && info.t1) MediaSess.position(info.t1, info.t0, info.speed);
+  },
+  renderMemo: function (info, busy) {
+    var E = Deck.el, b = info.block;
+    setText(E.mvTitle, info.title);
+    setText(E.mvSub, info.sub || '');
+    if (b) {
+      var key = 'M' + S.memo.source + ':' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
+      if (Deck.textKey !== key) {
+        Deck.textKey = key; Deck.lit = null;
+        var r = wordsHTML(b);
+        E.mvText.className = 'in' + (r.n > 34 ? ' s2' : '');
+        E.mvText.innerHTML = r.html; E.mvTxt.scrollTop = 0;
+      }
+      Deck.light(E.mvText, E.mvTxt, info.wordAt);
+    } else if (info.resting) {
+      var key2 = 'R' + S.pos.s + ':' + S.pos.a;
+      if (Deck.textKey !== key2) {
+        Deck.textKey = key2; Deck.lit = null;
+        var r2 = wordsHTML({ s: S.pos.s, spans: [{ a: S.pos.a, p1: 1, p2: D.words[String(S.pos.s)][S.pos.a - 1].length }] });
+        E.mvText.className = 'in' + (r2.n > 34 ? ' s2' : '');
+        E.mvText.innerHTML = r2.html;
+      }
+    }
+    E.mvTxt.classList.toggle('recite', !!info.veil);
+    setHTML(E.mvStatus, info.status || '');
+    E.ringFill.style.strokeDashoffset = (289.03 * (1 - info.frac)).toFixed(2);
+    setHTML(E.mvGlyph, busy ? ICON.pause : ICON.play);
+    setHTML(E.mvPrev, ICON.prev);                 /* the glyphs candidate c never drew */
+    setHTML(E.mvNext, ICON.next);
+    var pk = '';
+    PICKERS.forEach(function (p) {
+      pk += '<button data-k="' + p.k + '"' + (Deck.openPicker === p.k ? ' class="open"' : '') + ' aria-label="' + p.label + '">' +
+        '<span class="lbl">' + p.label + '</span><span class="val">' + esc(p.fmt(S.memo[p.k])) + '</span></button>';
+    });
+    setHTML(E.mvPickers, pk);
+    var cur = null;
+    PICKERS.forEach(function (p) { if (p.k === Deck.openPicker) cur = p; });
+    var okey = cur ? cur.k + ':' + S.memo[cur.k] : 'none';
+    if (Deck.pickKey !== okey) {
+      Deck.pickKey = okey;
+      var oh = '';
+      if (cur) cur.values.forEach(function (v) { oh += '<button data-v="' + v + '"' + (v === S.memo[cur.k] ? ' class="on"' : '') + '>' + esc(cur.fmt(v)) + '</button>'; });
+      E.mvOptions.innerHTML = oh;
+    }
+    E.mvOptions.classList.toggle('show', !!cur);
+    setHTML(E.mvPosVal, esc(surah(S.pos.s).name) + ' ' + S.pos.s + ':' + S.pos.a + '<span class="ar">' + esc(surah(S.pos.s).arabic) + '</span>');
+  },
+  light: function (textEl, box, w) {
+    var key = w ? w.a + ':' + w.p : null;
+    if (Deck.lit === key) return;
+    if (Deck.lit) { var old = qs('.w.on', textEl); if (old) old.classList.remove('on'); }
+    Deck.lit = key;
+    if (!w) return;
+    var el = qs('.w[data-a="' + w.a + '"][data-p="' + w.p + '"]', textEl);
+    if (!el) return;
+    el.classList.add('on');
+    var top = el.offsetTop - textEl.offsetTop, bottom = top + el.offsetHeight;   /* keep the lit word in view */
+    if (top < box.scrollTop + 8 || bottom > box.scrollTop + box.clientHeight - 8) {
+      box.scrollTop = Math.max(0, top - box.clientHeight / 2 + el.offsetHeight / 2);
+    }
+  }
+};
+
+/* ============================================================================
+   Sheets
+   ========================================================================= */
+function Sheet(id) {
+  var self = this;
+  this.el = $(id); this.card = qs('.card', this.el);
+  this.h2 = qs('.stitle h2', this.el); this.ssub = qs('.stitle .ssub', this.el);
+  this.tools = qs('.tools', this.el); this.body = qs('.body', this.el); this.right = qs('.hd .r', this.el);
+  on(qs('.close', this.el), 'click', function () { self.hide(); });
+  on(this.el, 'click', function (e) { if (e.target === self.el) self.hide(); });
+}
+/* a fresh node carries no listeners, so wiring a sheet again can never double-fire an old one */
+function freshen(node) { var n = node.cloneNode(false); node.parentNode.replaceChild(n, node); return n; }
+Sheet.prototype.show = function (title, sub, bodyHTML, toolsHTML, rightHTML) {
+  this.body = freshen(this.body); this.tools = freshen(this.tools); this.right = freshen(this.right);
+  this.h2.textContent = title;
+  this.ssub.textContent = sub || ''; this.ssub.classList.toggle('hide', !sub);
+  this.body.innerHTML = bodyHTML; this.body.scrollTop = 0;
+  this.tools.innerHTML = toolsHTML || ''; this.tools.classList.toggle('hide', !toolsHTML);
+  this.right.innerHTML = rightHTML || '';
+  this.el.classList.add('show');
+};
+Sheet.prototype.hide = function () { this.el.classList.remove('show'); var i = qs('input', this.tools); if (i) i.blur(); };
+var sheetA, sheetB;
+
+/* --- the surah picker, grouped by juz, with dimmed continuation rows --- */
+function surahRowHTML(n, fromA, cont, playing) {
+  var s = surah(n), pos = S.resume['q:' + n], sub;
+  if (cont) sub = 'from ayah ' + fromA + ' · page ' + pageOf(n, fromA);
+  else {
+    sub = s.ayahs + ' ayat · page ' + s.page;
+    if (pos > 3 && S.recent.husary && S.recent.husary.s === n) sub += '<b> · at ' + n + ':' + S.recent.husary.a + '</b>';
+  }
+  return '<button class="row' + (cont ? ' cont' : '') + (playing ? ' playing' : '') + '" data-surah="' + n + '" data-from="' + fromA + '" data-cont="' + (cont ? 1 : 0) + '" ' +
+    'data-q="' + esc((n + ' ' + s.name + ' ' + s.en + ' ' + s.arabic + ' ' + s.name.replace(/[-’\' ]/g, '')).toLowerCase()) + '">' +
+    '<span class="n">' + n + '</span>' +
+    '<span class="mid"><span class="t">' + esc(s.name) + '</span><span class="s">' + sub + '</span></span>' +
+    '<span class="arn" lang="ar">' + esc(s.arabic) + '</span></button>';
+}
+function surahListHTML(opts) {
+  var html = '', j, n, myJuz = opts.juz;
+  for (j = 1; j <= 30; j++) {
+    var st = parseRef(D.meta.juzStarts[j - 1]), en = juzEnd(j), note = '';
+    if (st.a > 1) note = surah(st.s).name + ' from ' + refStr(st);
+    html += '<div class="jz' + (j === myJuz ? ' on' : '') + '" data-juz="' + j + '"><span class="jn">Juz ' + j + '</span><span class="jn">' + esc(note) + '</span></div>';
+    for (n = st.s; n <= en.s; n++) html += surahRowHTML(n, n === st.s ? st.a : 1, n === st.s && st.a > 1, opts.playing === n);
+  }
+  return html;
+}
+function wireSurahList(sheet, onPick) {
+  var input = qs('input', sheet.tools), jump = qs('[data-jump]', sheet.tools), body = sheet.body;
+  function filter() {
+    var q = input.value.trim().toLowerCase(), qn = /^\d+$/.test(q) ? +q : 0;
+    qsa('.row', body).forEach(function (r) {
+      var ok = !q || (qn ? String(+r.getAttribute('data-surah')).indexOf(q) === 0 : r.getAttribute('data-q').indexOf(q) >= 0);
+      r.classList.toggle('hide', !ok);
+    });
+    qsa('.jz', body).forEach(function (h) {
+      var nx = h.nextElementSibling, any = false;
+      while (nx && !nx.classList.contains('jz')) { if (!nx.classList.contains('hide')) any = true; nx = nx.nextElementSibling; }
+      h.classList.toggle('hide', !!q && !any);
+    });
+  }
+  if (input) on(input, 'input', filter);
+  if (jump) on(jump, 'click', function () {
+    if (input) { input.value = ''; filter(); }
+    var h = qs('.jz[data-juz="' + jump.getAttribute('data-jump') + '"]', body);
+    if (h) body.scrollTop = h.offsetTop - body.offsetTop;
+  });
+  on(body, 'click', function (e) {
+    var row = e.target.closest ? e.target.closest('.row[data-surah]') : null; if (!row) return;
+    onPick(+row.getAttribute('data-surah'), row.getAttribute('data-cont') === '1' ? +row.getAttribute('data-from') : 0);
+  });
+}
+function showSurahPicker() {
+  var myJuz = juzOf(S.pos.s, S.pos.a), playing = Active === Listen && Listen.desc && Listen.desc.kind === 'quran' ? Listen.ranges[Listen.ri].s : 0;
+  var tools = '<div class="search"><input type="text" inputmode="search" enterkeyhint="search" placeholder="Surah name or number" ' +
+    'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search surahs">' +
+    '<button class="txtbtn jump" data-jump="' + myJuz + '">Juz ' + myJuz + '</button></div>';
+  sheetA.show('Quran', 'Mahmoud Khalil al-Husary · Murattal', surahListHTML({ juz: myJuz, playing: playing }), tools);
+  wireSurahList(sheetA, function (n, fromA) { sheetA.hide(); playHusaryFrom(n, fromA); });
+}
+
+/* --- revision: the four ranges, each resolved into names --- */
+function revisionChoices() {
+  var P = pageOf(S.pos.s, S.pos.a), P2 = Math.min(P + 4, 604), pos = { s: S.pos.s, a: S.pos.a }, su = surah(S.pos.s), J = juzOf(S.pos.s, S.pos.a);
+  var ps = pageStart(P), pe = pageEnd(P2), je = juzEnd(J);
+  return [
+    { id: 'pages', name: 'Last 5 pages',
+      def: 'Pages ' + P + '–' + P2 + ': from the first ayah of page ' + P + ' (<b>' + esc(surah(ps.s).name) + ' ' + ps.a + '</b>) to the end of page ' + P2 + ' (<b>' + esc(surah(pe.s).name) + ' ' + pe.a + '</b>)',
+      from: ps, to: pe },
+    { id: 'surah', name: 'Last surah',
+      def: 'All of <b>' + esc(su.name) + '</b> · ' + su.ayahs + ' ayat',
+      from: { s: su.n, a: 1 }, to: { s: su.n, a: su.ayahs } },
+    { id: 'juz', name: 'Last juz',
+      def: 'From <b>' + esc(su.name) + ' ' + pos.a + '</b> to the end of Juz ' + J + ' (<b>' + esc(surah(je.s).name) + ' ' + je.a + '</b>)',
+      from: pos, to: je },
+    { id: 'all', name: 'Everything',
+      def: 'From <b>' + esc(su.name) + ' ' + pos.a + '</b> to <b>An-Nas 6</b> — all you have memorised',
+      from: pos, to: { s: 114, a: 6 } }
+  ];
+}
+function showRevision() {
+  var ch = revisionChoices(), html = '';
+  ch.forEach(function (c) { html += '<button class="choice" data-rev="' + c.id + '"><span class="nm">' + c.name + '</span><span class="df">' + c.def + '</span></button>'; });
+  html += '<div class="hint">Continuous Husary at your listening speed, no pauses.</div>';
+  sheetA.show('Revise', 'Position ' + surah(S.pos.s).name + ' ' + refStr(S.pos), html);
+  on(sheetA.body, 'click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-rev]') : null; if (!b) return;
+    var id = b.getAttribute('data-rev'), c = null;
+    revisionChoices().forEach(function (x) { if (x.id === id) c = x; });
+    var ranges = rangesBetween(c.from, c.to);
+    if (!ranges.length) { toast('Nothing in that range'); return; }
+    sheetA.hide();
+    Listen.start({ kind: 'quran', source: 'murattal', ranges: ranges, title: c.name, sub: 'Revise · ' + c.name.toLowerCase(),
+      remember: false, tile: 'revise', recent: { title: c.name } });
+    Deck.show();
+  });
+}
+
+/* --- collections and recitations --- */
+function collectionItemHTML(it, i, sub, off) {
+  return '<button class="row' + (off ? ' off' : '') + '" data-item="' + esc(it.id) + '"' + (off ? ' disabled' : '') + '>' +
+    '<span class="n">' + (i + 1) + '</span><span class="mid"><span class="t">' + esc(it.title) + '</span><span class="s">' + sub + '</span></span></button>';
+}
+function showCollection(kind) {
+  var c = D.content[kind], html = '', avail;
+  if (!c) { toast('Could not load ' + KIND[kind].name); return; }
+  avail = c.items.filter(function (it) { return it.url; }).length;
+  c.items.forEach(function (it, i) {
+    var res = S.resume['c:' + it.id], sub;
+    if (!it.url) sub = 'Not yet available';
+    else sub = (it.duration ? fmtTime(it.duration) : '') + (res > 3 ? (it.duration ? ' · ' : '') + '<b>resume at ' + fmtTime(res) + '</b>' : '');
+    html += collectionItemHTML(it, i, sub, !it.url);
+  });
+  if (!c.items.length) html = '<div class="empty">Nothing here yet.</div>';
+  sheetA.show(c.title || KIND[kind].name, avail === c.items.length ? c.items.length + ' items' : avail + ' of ' + c.items.length + ' available', html);
+  on(sheetA.body, 'click', function (e) {
+    var row = e.target.closest ? e.target.closest('[data-item]') : null; if (!row) return;
+    var id = row.getAttribute('data-item'), it = null;
+    c.items.forEach(function (x) { if (x.id === id) it = x; });
+    if (!it || !it.url) { toast('Not yet available — no file for this one'); return; }
+    sheetA.hide(); playCollectionItem(kind, it);
+  });
+}
+function playCollectionItem(kind, it) {
+  var c = D.content[kind];
+  Listen.start({ kind: 'file', url: it.url, title: it.title, sub: c.title, key: 'c:' + it.id, speedSet: 'l',
+    tile: kind, recent: { id: it.id, title: it.title }, duration: it.duration || 0, info: c.title });
+  Deck.show();
+}
+function showReciters() {
+  var c = D.content.reciters, html = '';
+  if (!c) { toast('Could not load the recitations'); return; }
+  c.items.forEach(function (it) {
+    var su = it.surah ? surah(it.surah) : null, res = S.resume['r:' + it.id];
+    html += '<button class="row' + (it.url ? '' : ' off') + '" data-item="' + esc(it.id) + '"' + (it.url ? '' : ' disabled') + '>' +
+      '<span class="n">' + (su ? su.n : '') + '</span>' +
+      '<span class="mid"><span class="t">' + esc(it.title) + '</span><span class="s">' + esc(it.reciter || '') + (res > 3 ? '<b> · resume at ' + fmtTime(res) + '</b>' : '') + '</span></span>' +
+      (su ? '<span class="arn" lang="ar">' + esc(su.arabic) + '</span>' : '') + '</button>';
+  });
+  sheetA.show(c.title || 'Recitations', 'Favourite reciter and surah pairs', html);
+  on(sheetA.body, 'click', function (e) {
+    var row = e.target.closest ? e.target.closest('[data-item]') : null; if (!row) return;
+    var id = row.getAttribute('data-item'), it = null;
+    c.items.forEach(function (x) { if (x.id === id) it = x; });
+    if (!it || !it.url) return;
+    sheetA.hide(); playReciterItem(it);
+  });
+}
+function playReciterItem(it) {
+  var su = it.surah ? surah(it.surah) : null;
+  Listen.start({ kind: 'file', url: it.url, title: it.title, arTitle: su ? su.arabic : '', sub: it.reciter || '',
+    key: 'r:' + it.id, speedSet: 'q', tile: 'reciters', recent: { id: it.id, title: it.title + ' · ' + (it.reciter || '').split(' ').slice(-1)[0] },
+    info: su ? su.name + ' · ' + su.ayahs + ' ayat · Page ' + su.page : '' });
+  Deck.show();
+}
+
+/* --- the position picker: surahs from the back, then the ayah --- */
+function showPositionPicker() {
+  var html = '', n;
+  for (n = 114; n >= 1; n--) html += surahRowHTML(n, 1, false, n === S.pos.s);
+  sheetB.show('I am learning', 'Surah, then the ayah. Surahs run from the back.', html);
+  var cur = qs('.row.playing', sheetB.body);
+  if (cur) sheetB.body.scrollTop = Math.max(0, cur.offsetTop - sheetB.body.offsetTop - 8);
+  on(sheetB.body, 'click', function (e) {
+    var row = e.target.closest ? e.target.closest('.row[data-surah]') : null; if (!row) return;
+    showAyahGrid(+row.getAttribute('data-surah'));
+  });
+  function showAyahGrid(n) {
+    var su = surah(n), h = '<div class="subhd">' + esc(su.name) + ' · ' + su.ayahs + ' ayat</div><div class="ayahs">', a;
+    for (a = 1; a <= su.ayahs; a++) h += '<button data-a="' + a + '"' + (n === S.pos.s && a === S.pos.a ? ' class="on"' : '') + '>' + a + '</button>';
+    h += '</div>';
+    sheetB.show('I am learning', esc(su.arabic) + ' · choose the ayah', h, '', '<button class="txtbtn" data-back>Surahs</button>');
+    on(qs('[data-back]', sheetB.right), 'click', function () { showPositionPicker(); });
+    var c = qs('.ayahs .on', sheetB.body);
+    if (c) sheetB.body.scrollTop = Math.max(0, c.offsetTop - sheetB.body.offsetTop - 120);
+    on(sheetB.body, 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-a]') : null; if (!b) return;
+      sheetB.hide(); Memo.setPosition(n, +b.getAttribute('data-a'));
+    });
+  }
+}
+
+/* ============================================================================
+   Downloads into Cache Storage (the service worker answers from it)
+   ========================================================================= */
+var DL = {
+  have: {}, prog: {},
+  init: function () {
+    if (!('caches' in window)) return;
+    caches.open(AUDIO_CACHE).then(function (c) { return c.keys(); }).then(function (reqs) {
+      reqs.forEach(function (r) { DL.have[r.url] = 1; });
+      Deck.render(true);
+    }).catch(noop);
+  },
+  state: function (url) { if (DL.have[url]) return 'done'; if (url in DL.prog) return DL.prog[url]; return 'none'; },
+  download: function (url) {
+    if (!('caches' in window)) { toast('Offline storage is not available here'); return; }
+    if (DL.have[url]) { toast('Already saved on this phone'); return; }
+    if (url in DL.prog) return;
+    DL.prog[url] = 0; Deck.render(true);
+    fetch(url, { mode: 'cors' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var total = +res.headers.get('Content-Length') || 0, got = 0, chunks = [], reader = res.body.getReader();
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          chunks.push(r.value); got += r.value.length;
+          var pct = total ? Math.min(99, Math.floor(got / total * 100)) : 0;
+          if (pct !== DL.prog[url]) { DL.prog[url] = pct; Deck.render(true); }
+          return pump();
+        });
+      }
+      return pump().then(function () {
+        var blob = new Blob(chunks, { type: 'audio/mpeg' });
+        return caches.open(AUDIO_CACHE).then(function (c) {
+          return c.put(url, new Response(blob, { status: 200, headers: {
+            'Content-Type': 'audio/mpeg', 'Content-Length': String(blob.size), 'Accept-Ranges': 'bytes' } }));
+        });
+      });
+    }).then(function () {
+      delete DL.prog[url]; DL.have[url] = 1; Deck.render(true); toast('Saved on this phone');
+    }, function (e) {
+      delete DL.prog[url]; Deck.render(true); toast('Download failed — ' + (e && e.message ? e.message : 'try again'));
+    });
+  }
+};
+
+/* ============================================================================
+   Tile actions. One tap is always sound; the chevron is the list.
+   ========================================================================= */
+function playHusaryFrom(n, fromA) {
+  var ranges = [], s;
+  for (s = n; s <= 114; s++) ranges.push({ s: s, a1: s === n && fromA ? fromA : 1, a2: surah(s).ayahs });
+  Listen.start({ kind: 'quran', source: 'murattal', ranges: ranges, title: surah(n).name, remember: true,
+    tile: 'husary', recent: { s: n, a: fromA || 1 } }, { startSec: fromA ? null : S.resume['q:' + n] });
+  Deck.show();
+}
+function firstPlayable(kind) {
+  var c = D.content[kind]; if (!c) return null;
+  for (var i = 0; i < c.items.length; i++) if (c.items[i].url) return c.items[i];
+  return null;
+}
+function resumeCollection(kind) {
+  var c = D.content[kind];
+  if (!c) { toast('Could not load ' + KIND[kind].name); return; }
+  var last = S.recent[kind], it = null;
+  if (last && last.id) c.items.forEach(function (x) { if (x.id === last.id && x.url) it = x; });
+  if (!it) it = firstPlayable(kind);
+  if (!it) { showCollection(kind); return; }          /* nothing has a file yet: show the list instead */
+  if (kind === 'reciters') playReciterItem(it); else playCollectionItem(kind, it);
+}
+var Lists = {
+  memorize: function () { showPositionPicker(); },
+  husary: function () { showSurahPicker(); },
+  reciters: function () { showReciters(); },
+  sharh: function () { showCollection('sharh'); },
+  hadith: function () { showCollection('hadith'); },
+  podcasts: function () { showCollection('podcasts'); }
+};
+var Actions = {
+  memorize: function () { Memo.open(); Deck.show(); },
+  revise: function () { showRevision(); },
+  husary: function () {
+    var r = S.recent.husary;
+    if (r && r.s) {                                    /* resume where the Quran stopped */
+      var ranges = [], s;
+      for (s = r.s; s <= 114; s++) ranges.push({ s: s, a1: 1, a2: surah(s).ayahs });
+      Listen.start({ kind: 'quran', source: 'murattal', ranges: ranges, title: surah(r.s).name, remember: true,
+        tile: 'husary', recent: { s: r.s, a: r.a } }, { startSec: S.resume['q:' + r.s] != null ? S.resume['q:' + r.s] : timings('murattal')[String(r.s)].v[r.a - 1][0] / 1000 });
+      Deck.show();
+    } else showSurahPicker();                          /* nothing was ever played: the picker */
+  },
+  reciters: function () { resumeCollection('reciters'); },
+  sharh: function () { resumeCollection('sharh'); },
+  hadith: function () { resumeCollection('hadith'); },
+  podcasts: function () { resumeCollection('podcasts'); }
+};
+
+/* ============================================================================
+   boot
+   ========================================================================= */
+function boot() {
+  sheetA = new Sheet('sheetA'); sheetB = new Sheet('sheetB');
+  Home.init(); Deck.init(); Home.render();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(noop);
+  loadData().then(function () {
+    $('boot').classList.add('gone');
+    Home.render(); Deck.render(true); DL.init(); MediaSess.init();
+    if (S.memo.source === 'muallim') ensureTimings('muallim').catch(noop);
+    window.MUSHAF = { S: S, D: D, Core: Core, Memo: Memo, Listen: Listen, Deck: Deck, Home: Home, DL: DL,
+      Plan: MushafPlan, audio: audio, actions: Actions, lists: Lists, active: function () { return Active; }, ready: true };
+    document.documentElement.setAttribute('data-ready', '1');
+  }, function (err) {
+    $('boot').textContent = 'Could not load the Quran data. Check the connection and open Mushaf again.';
+    if (window.console) console.error(err);
+  });
+}
+boot();
 </script>
-</main></body></html>
+</body>
+</html>

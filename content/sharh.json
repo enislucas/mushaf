@@ -1,0 +1,36 @@
+{
+  "title": "Sharh Usul ath-Thalatha",
+  "note": "SAMPLE. Replace items with the owner's files (url + duration in seconds) once hosted.",
+  "items": [
+    {
+      "id": "sharh-usul-ath-thalatha-1",
+      "title": "Lesson 1 - Introduction and the four matters",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "sharh-usul-ath-thalatha-2",
+      "title": "Lesson 2 - Knowledge of Allah",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "sharh-usul-ath-thalatha-3",
+      "title": "Lesson 3 - The three principles",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "sharh-usul-ath-thalatha-4",
+      "title": "Lesson 4 - Who is your Lord?",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "sharh-usul-ath-thalatha-5",
+      "title": "Lesson 5 - What is your religion?",
+      "url": null,
+      "duration": null
+    }
+  ]
+}

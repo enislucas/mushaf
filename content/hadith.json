@@ -1,0 +1,30 @@
+{
+  "title": "Hadith",
+  "note": "SAMPLE. Replace with the owner's files.",
+  "items": [
+    {
+      "id": "hadith-1",
+      "title": "Riyad as-Salihin 1 - Sincerity",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "hadith-2",
+      "title": "Riyad as-Salihin 2 - Repentance",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "hadith-3",
+      "title": "Riyad as-Salihin 3 - Patience",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "hadith-4",
+      "title": "Forty Hadith of an-Nawawi 1-10",
+      "url": null,
+      "duration": null
+    }
+  ]
+}

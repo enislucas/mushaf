@@ -1,0 +1,24 @@
+{
+  "title": "Podcasts",
+  "note": "SAMPLE. Replace with the owner's files.",
+  "items": [
+    {
+      "id": "podcasts-1",
+      "title": "Episode 1",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "podcasts-2",
+      "title": "Episode 2",
+      "url": null,
+      "duration": null
+    },
+    {
+      "id": "podcasts-3",
+      "title": "Episode 3",
+      "url": null,
+      "duration": null
+    }
+  ]
+}

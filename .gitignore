@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+# raw API downloads are kept (data/src) - they are the audit trail for quran/*.json
+
+# Personal notes for the build; not published.
+SPEC.md
+candidates/

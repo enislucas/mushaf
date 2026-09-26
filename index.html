@@ -26,7 +26,13 @@
   --pad:20px; --mini:62px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:#05070C;height:100%;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+html{background:#05070C;height:100%;overscroll-behavior:none;-webkit-text-size-adjust:100%;color-scheme:dark}
+/* scrollbars: on a laptop the browser's default is a white bar down the side of every list */
+*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24)}
 /* position:fixed + inset 0 (A's approach): iOS 15 has no overscroll-behavior, so the page itself cannot rubber-band */
 body{margin:0;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100vh;height:100dvh;overflow:hidden;
   background:linear-gradient(180deg,#05070C 0%,#0A0F1A 100%);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.3;
@@ -142,6 +148,11 @@ svg{display:block}
 .search input{flex:1;min-width:0;height:50px;font-size:17px;padding:0}
 .search input::placeholder{color:var(--faint)}
 .search .jump{flex:none;height:50px;padding-left:14px;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:17px}
+.search .sort{flex:none;width:44px;height:50px;margin-left:4px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.search .sort svg{width:22px;height:22px;transition:transform .2s}
+.search .sort.desc svg{transform:scaleY(-1)}
+.search .sort:active{color:var(--text)}
+.pagehit:empty{display:none}
 
 /* two-line list rows */
 .jz{padding:24px 0 6px;font-size:15px;letter-spacing:.01em;color:var(--dim);border-bottom:1px solid var(--hair);
@@ -157,6 +168,7 @@ svg{display:block}
 .row .s b{font-weight:400;color:var(--accent)}
 .row .arn{flex:none;margin-left:14px;font-family:var(--quran);font-size:23px;line-height:1.4;direction:rtl;unicode-bidi:isolate}
 .row.cont .t,.row.cont .arn{color:var(--dim)}
+.row.pg .t,.row.pg .arn{color:var(--text)}      /* a page found by search is an answer, not a continuation */
 .row.playing .t,.row.playing .arn{color:var(--accent)}
 .row.off{opacity:.4}
 .row:not(.off):active{opacity:.55}
@@ -248,7 +260,18 @@ svg{display:block}
 .posrow .v .ar{font-size:19px;margin-left:6px}
 .posrow .c{flex:none;color:var(--faint);display:flex;align-items:center}
 .posrow .c svg{width:9px;height:16px}
-.posrow:active .v{opacity:.55}
+.posrow .pv{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:56px}
+.posrow .pv:active .v{opacity:.55}
+/* the tick beside the position: "I have memorised this" — he says it, listening never does */
+.posrow .ok{flex:none;width:44px;height:56px;margin-right:-10px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.posrow .ok svg{width:24px;height:24px}
+.posrow .ok:active{color:var(--accent)}
+.body .posrow{border-top:0;border-bottom:1px solid var(--hair)}
+.body .posrow:active .v{opacity:.55}
+/* a recitation with a second reader: the two choices sit under the surah row */
+.row.alt{min-height:50px;padding-left:36px}
+.row.alt .t{font-size:17px}
+.row.alt + .row:not(.alt){border-top:0}
 .dlrow{flex:none;display:flex;align-items:center;justify-content:center;min-height:48px;font-size:15px;color:var(--dim);
   font-variant-numeric:tabular-nums}
 .dlrow:active{color:var(--text)}
@@ -264,6 +287,15 @@ svg{display:block}
 .boot.gone{opacity:0;pointer-events:none}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{transition-duration:0s!important;animation:none!important}}
 @media (max-width:392px){.pickers .val{font-size:15px}}
+/* A laptop: the phone's layout as a centred column, never stretched across the screen. The dimmed
+   backdrop behind a sheet stays full width; everything he reads or taps is 560px at most. */
+@media (min-width:640px){
+  #app{left:50%;right:auto;width:560px;margin-left:-280px}
+  .mini{left:50%;right:auto;width:560px;margin-left:-280px;border-left:1px solid var(--hair);border-right:1px solid var(--hair)}
+  .card{left:50%;right:auto;width:560px;margin-left:-280px;top:36px;border:1px solid var(--hair);border-bottom:0;border-radius:14px 14px 0 0}
+  .player{left:50%;right:auto;width:560px;margin-left:-280px;border-left:1px solid var(--hair);border-right:1px solid var(--hair)}
+  .txt{max-height:40vh}
+}
 @media (max-height:700px){
   .txt .in{font-size:30px;line-height:1.85}
   .txt .in.s2{font-size:27px}
@@ -337,7 +369,7 @@ svg{display:block}
       </div>
       <div class="options" id="mvOptions" role="group"></div>
       <div class="pickers" id="mvPickers"></div>
-      <button class="posrow" id="mvPos"><span class="l">Learning</span><span class="v num" id="mvPosVal"></span><span class="c"></span></button>
+      <div class="posrow"><button class="pv" id="mvPos" aria-label="Change what you are learning"><span class="l">Learning</span><span class="v num" id="mvPosVal"></span><span class="c"></span></button><button class="ok" id="mvOk" aria-label="I have memorised this"></button></div>
     </section>
 
   </div>
@@ -394,8 +426,9 @@ var SPEEDS_Q = [0.5, 0.75, 1, 1.25], SPEEDS_L = [0.75, 1, 1.25, 1.5];
 var PAUSES = [0.75, 1, 1.25, 1.5], REPEATS = [1, 2, 3, 0];      /* 0 = infinite */
 var MODES = ['ayah', '2', '3', 'words', 'auto'];
 var MODE_LABEL = { ayah: 'Ayah', '2': '2 ayat', '3': '3 ayat', words: 'Words', auto: 'Auto' };
-var SOURCES = ['murattal', 'muallim'], SOURCE_LABEL = { murattal: 'Murattal', muallim: 'Muallim' };
-var COLLECTIONS = { sharh: 'sharh.json', hadith: 'hadith.json', podcasts: 'podcasts.json', reciters: 'reciters.json' };
+var WORD_COUNTS = [3, 4, 5, 6, 7, 8];            /* words per block in Words mode */
+var RECITER = 'Mahmoud Khalil al-Husary';
+var SORT_DEFAULT = { husary: 'asc', pos: 'desc', mem: 'desc', add: 'asc', rec: 'asc' };
 
 var S = {
   layout: LS.get('layout', null),
@@ -404,7 +437,13 @@ var S = {
   listen: LS.get('listen', {}),
   resume: LS.get('resume', {}),
   recent: LS.get('recent', {}),
-  now: LS.get('now', null)
+  now: LS.get('now', null),
+  /* what he has MEMORISED, which he says himself - listening in Memorise never counts.
+     last: the last ayah of the run he is building from the back (surah last.s up to ayah last.a,
+     and every surah after it to An-Nas); extra: whole surahs memorised outside that run. */
+  mem: LS.get('mem', null),
+  ui: LS.get('ui', {}),
+  hist: LS.get('hist', {})                    /* recitations: { id: { secs, last, plays, seen } } */
 };
 (function normalise() {                      /* defaults are merged, never trusted from storage */
   var L = S.layout;
@@ -414,14 +453,18 @@ var S = {
   L.tiles = L.tiles.filter(function (id) { if (!KIND[id] || seen[id]) return false; seen[id] = 1; return true; }).slice(0, L.size);
   if (!L.tiles.length) L.tiles = DEFAULT_TILES.slice(0, L.size);
   S.layout = L; LS.set('layout', L);
-  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'auto', source: 'murattal' };
+  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'ayah', words: 5 };
+  /* once: the first version defaulted to Auto; one ayah is the default now */
+  if (m.v !== 2) { m.mode = 'ayah'; m.v = 2; }
   for (var k in d) if (!(k in m)) m[k] = d[k];
   if (SPEEDS_Q.indexOf(m.speed) < 0) m.speed = 1;
   if (PAUSES.indexOf(m.pause) < 0) m.pause = 1;
   if (REPEATS.indexOf(m.repeat) < 0) m.repeat = 2;
-  if (MODES.indexOf(m.mode) < 0) m.mode = 'auto';
-  if (SOURCES.indexOf(m.source) < 0) m.source = 'murattal';
-  delete m.text;
+  if (MODES.indexOf(m.mode) < 0) m.mode = 'ayah';
+  if (WORD_COUNTS.indexOf(m.words) < 0) m.words = 5;
+  delete m.text; delete m.source;             /* Husary murattal only: the source setting is gone */
+  save('memo');
+  for (var sk in SORT_DEFAULT) if (S.ui[sk] !== 'asc' && S.ui[sk] !== 'desc') S.ui[sk] = SORT_DEFAULT[sk];
   if (SPEEDS_Q.indexOf(S.listen.q) < 0) S.listen.q = 1;
   if (SPEEDS_L.indexOf(S.listen.l) < 0) S.listen.l = 1;
   if (!S.pos || !(S.pos.s >= 1 && S.pos.s <= 114)) S.pos = { s: 114, a: 1 };
@@ -444,13 +487,11 @@ function loadData() {
     D.content.reciters = r[3]; D.content.sharh = r[4]; D.content.hadith = r[5]; D.content.podcasts = r[6];
     D.pageKeys = D.meta.pageStarts.map(keyOf); D.juzKeys = D.meta.juzStarts.map(keyOf);
     if (S.pos.a < 1 || S.pos.a > surah(S.pos.s).ayahs) S.pos.a = 1;
+    Rec.build();
+    Mem.normalise();
   });
 }
-function timings(src) { return D.timings[src] || null; }
-function ensureTimings(src) {
-  if (D.timings[src]) return Promise.resolve(D.timings[src]);
-  return loadJSON(BASE + 'husary-' + (src === 'muallim' ? 'muallim-' : '') + 'timings.json').then(function (t) { D.timings[src] = t; return t; });
-}
+function timings() { return D.timings.murattal; }
 
 /* ---------------- mushaf geometry ---------------- */
 function keyOf(str) { var p = str.split(':'); return (+p[0]) * 1000 + (+p[1]); }
@@ -471,6 +512,85 @@ function rangesBetween(from, to) {          /* inclusive, canonical order, one r
   return out;
 }
 function refStr(r) { return r.s + ':' + r.a; }
+function pagesIn(ranges) {                  /* how many mushaf pages a set of ranges touches */
+  var seen = {}, n = 0;
+  ranges.forEach(function (r) { for (var p = pageOf(r.s, r.a1), q = pageOf(r.s, r.a2); p <= q; p++) if (!seen[p]) { seen[p] = 1; n++; } });
+  return n;
+}
+
+/* ============================================================================
+   Memorised: what he SAYS he knows. Listening in Memorise never changes it.
+   He builds one run from the back (An-Nas, Al-Falaq, … then surah by surah downwards, each
+   surah learnt from its first ayah), so the run is described by its last ayah: surah last.s
+   from ayah 1 to last.a, plus every surah after it to An-Nas. Anything learnt outside that run
+   (Al-Kahf) is a whole surah in `extra`.
+   ========================================================================= */
+var Mem = {
+  /* how far along his run a reference is: lower surahs are further, and inside a surah later ayat */
+  ext: function (r) { return r ? (114 - r.s) * 1000 + r.a : -1; },
+  normalise: function () {
+    var m = S.mem;
+    if (!m || typeof m !== 'object') m = { last: Mem.derive(), extra: [18] };   /* he told us: Al-Kahf */
+    if (m.last && !(m.last.s >= 1 && m.last.s <= 114 && m.last.a >= 1 && m.last.a <= surah(m.last.s).ayahs)) m.last = null;
+    m.extra = (m.extra || []).filter(function (n, i, arr) { return n >= 1 && n <= 114 && arr.indexOf(n) === i; });
+    m.extra.sort(function (a, b) { return a - b; });
+    S.mem = m; save('mem');
+  },
+  derive: function () {                      /* first run only: the ayah before the one Memorise is on */
+    var p = S.pos;
+    if (p.a > 1) return { s: p.s, a: p.a - 1 };
+    if (p.s < 114) return { s: p.s + 1, a: surah(p.s + 1).ayahs };
+    return null;
+  },
+  changed: function () { save('mem'); if (window.Home) Home.refresh(); },
+  extend: function (r) { if (Mem.ext(r) <= Mem.ext(S.mem.last)) return false; S.mem.last = { s: r.s, a: r.a }; Mem.changed(); return true; },
+  setLast: function (r) { S.mem.last = r ? { s: r.s, a: r.a } : null; Mem.changed(); },
+  addExtra: function (n) { if (S.mem.extra.indexOf(n) < 0) { S.mem.extra.push(n); S.mem.extra.sort(function (a, b) { return a - b; }); } Mem.changed(); },
+  removeExtra: function (n) { S.mem.extra = S.mem.extra.filter(function (x) { return x !== n; }); Mem.changed(); },
+  /* the ayah after the last memorised one, in his direction (a finished surah hands over to n-1) */
+  next: function () {
+    var l = S.mem.last; if (!l) return { s: 114, a: 1 };
+    if (l.a < surah(l.s).ayahs) return { s: l.s, a: l.a + 1 };
+    return l.s > 1 ? { s: l.s - 1, a: 1 } : null;
+  },
+  run: function () {                         /* mushaf order: the surah he is in, then the ones before it in time */
+    var l = S.mem.last, out = [], s; if (!l) return out;
+    out.push({ s: l.s, a1: 1, a2: l.a });
+    for (s = l.s + 1; s <= 114; s++) out.push({ s: s, a1: 1, a2: surah(s).ayahs });
+    return out;
+  },
+  /* a whole surah the run already holds does not need to appear again as an extra */
+  covers: function (n) { var l = S.mem.last; return !!l && (n > l.s || (n === l.s && l.a === surah(n).ayahs)); },
+  extras: function () { return S.mem.extra.filter(function (n) { return !Mem.covers(n); }); },
+  /* The N pages he memorised most recently, as a contiguous stretch of the mushaf. Inside a long
+     surah that is the N pages ending at his last ayah; otherwise the stretch starts on the first
+     page of the surah he is in and runs on into the surahs he finished before it. */
+  recent: function (N) {
+    var l = S.mem.last; if (!l) return [];
+    var pS = pageOf(l.s, 1), pA = pageOf(l.s, l.a), p0 = Math.max(pS, pA - N + 1), p1 = Math.min(604, p0 + N - 1);
+    var lo = pageStart(p0), hi = pageEnd(p1), loK = refKey(lo.s, lo.a), hiK = refKey(hi.s, hi.a), out = [];
+    Mem.run().forEach(function (r) {
+      var a1 = refKey(r.s, r.a1) < loK ? (r.s === lo.s ? lo.a : 0) : r.a1;
+      var a2 = refKey(r.s, r.a2) > hiK ? (r.s === hi.s ? hi.a : 0) : r.a2;
+      if (a1 >= 1 && a2 >= a1) out.push({ s: r.s, a1: a1, a2: a2 });
+    });
+    return out;
+  },
+  lastSurah: function () { var l = S.mem.last; return l ? [{ s: l.s, a1: 1, a2: l.a }] : []; },
+  everything: function () {                  /* every memorised ayah, in mushaf order */
+    var byS = {}, out = [];
+    Mem.run().forEach(function (r) { byS[r.s] = r; });
+    S.mem.extra.forEach(function (n) { byS[n] = { s: n, a1: 1, a2: surah(n).ayahs }; });
+    Object.keys(byS).map(Number).sort(function (a, b) { return a - b; }).forEach(function (n) { out.push(byS[n]); });
+    return out;
+  },
+  summary: function () {                     /* one line: where the run stands, and what else */
+    var l = S.mem.last, ex = Mem.extras(), parts = [];
+    if (l) parts.push(surah(l.s).name + ' ' + l.a);
+    ex.forEach(function (n) { parts.push(surah(n).name); });
+    return parts.length ? parts.join(' · ') : 'Nothing marked yet';
+  }
+};
 
 /* ---------------- toast ---------------- */
 var toastTimer = 0;
@@ -494,7 +614,10 @@ var ICON = {
   chev: '<svg viewBox="0 0 11 19" width="9" height="16" aria-hidden="true"><path d="M1.5 1.5 9.5 9.5l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   minus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9M12 7.5v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-  handle: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>'
+  handle: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>',
+  /* order: an arrow and three bars that lengthen along it; flipped (CSS) when the list runs backwards */
+  sort: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 4v15.5M2.8 16.3 6 19.5l3.2-3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 6h4M12.5 12h6.5M12.5 18h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.6 12.3l3 3 5.8-6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
 /* @@PLAN-BEGIN */
@@ -605,13 +728,18 @@ var MushafPlan = (function () {
     var x = (d - AUTO.part) / 1000;
     return x * x + (n < 3 ? 20 : 0) - (mark ? 2 : 0);
   }
-  /* Words: 5–6 units per block, hard window 4–7 unless a single unit is all there is. */
-  function wordsCost(d, n, mark, last) {
-    if (n < 2) return 1e7;
-    var x = n - WORDS.perBlock, c = x * x - (mark ? WORDS.markBonus : 0);
-    if (n < WORDS.lo || n > WORDS.hi) c += 1e4;
-    return c;
+  /* Words: he chooses how many words a block holds (3–8). The programme aims at exactly that many,
+     allows one fewer or one more so a cut can land on a pause mark, and never leaves a lone word. */
+  function wordsCostFor(N) {
+    var lo = Math.max(2, N - 1), hi = N + 1;
+    return function (d, n, mark, last) {
+      if (n < 2) return 1e7;
+      var x = n - N, c = x * x - (mark ? WORDS.markBonus : 0);
+      if (n < lo || n > hi) c += 1e4;
+      return c;
+    };
   }
+  var wordsCost = wordsCostFor(WORDS.perBlock);
 
   function splitAyah(s, a, ayah, words, cost) {
     var us = units(ayah, words);
@@ -630,16 +758,18 @@ var MushafPlan = (function () {
   }
 
   /* mode: 'ayah' | '2' | '3' | 'words' | 'auto'. Always plans a whole surah, so "block k of n"
-     counts within the surah and does not shrink when the position moves. */
-  function planBlocks(s, T, W, mode) {
+     counts within the surah and does not shrink when the position moves.
+     opts.words: words per block in Words mode (an ayah no longer than that plus one stays whole). */
+  function planBlocks(s, T, W, mode, opts) {
     var v = T.v, nA = v.length, out = [], i, j, d, g;
     if (mode === '2' || mode === '3') {
       g = mode === '2' ? 2 : 3;
       for (i = 0; i < nA; i += g) out.push(merge(s, v, i, Math.min(i + g - 1, nA - 1), W));
     } else if (mode === 'words') {
+      var N = (opts && opts.words) || WORDS.perBlock, cost = wordsCostFor(N);
       for (i = 0; i < nA; i++) {
-        if (units(v[i], W[i]).length <= WORDS.single) out.push(ayahBlock(s, v, i, W));
-        else out = out.concat(splitAyah(s, i + 1, v[i], W[i], wordsCost));
+        if (units(v[i], W[i]).length <= N + 1) out.push(ayahBlock(s, v, i, W));
+        else out = out.concat(splitAyah(s, i + 1, v[i], W[i], cost));
       }
     } else if (mode === 'auto') {
       i = 0;
@@ -685,7 +815,7 @@ var MushafPlan = (function () {
     while (lo <= hi) { m = (lo + hi) >> 1; if (ms < v[m][0]) hi = m - 1; else if (ms >= v[m][1]) lo = m + 1; else return m + 1; }
     return 0;
   }
-  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, wordAt: wordAt, ayahAt: ayahAt, units: units, bestCuts: bestCuts, autoCost: autoCost, wordsCost: wordsCost, AUTO: AUTO, WORDS: WORDS, MARK: MARK };
+  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, wordAt: wordAt, ayahAt: ayahAt, units: units, bestCuts: bestCuts, autoCost: autoCost, wordsCost: wordsCost, wordsCostFor: wordsCostFor, AUTO: AUTO, WORDS: WORDS, MARK: MARK };
 })();
 /* @@PLAN-END */
 
@@ -976,6 +1106,12 @@ var Listen = {
         if (a && Listen.desc.tile === 'husary') S.recent.husary = { s: Listen.ranges[Listen.ri].s, a: a };
       }
     }
+    /* recitations: count the time it really plays, for the five picks */
+    if (Listen.desc.recId) {
+      Rec.heard(Listen.desc.recId, Listen.lastHeard ? Math.min(1, (now - Listen.lastHeard) / 1000) : 0);
+      Listen.lastHeard = now;
+      if (now - (Listen.lastHist || 0) > 5000) { Listen.lastHist = now; save('hist'); }
+    }
     var k = Listen.key();
     if (k && now - Listen.lastSave > 2000) {
       Listen.lastSave = now; S.resume[k] = Math.floor(t * 10) / 10; save('resume');
@@ -988,8 +1124,14 @@ var Listen = {
     if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, true); else Listen.finish();
   },
   finish: function () {
-    Core.pause(); Core.disarm(); Listen.state = 'done';
     var k = Listen.key(); if (k) { delete S.resume[k]; save('resume'); }
+    /* a recitation that ends hands over to the next pick: the phone is a remote, put down */
+    if (Listen.desc && Listen.desc.recId) {
+      save('hist');
+      var nx = Rec.after(Listen.desc.recId);
+      if (nx && nx.id !== Listen.desc.recId) { playReciterItem(nx, true); return; }
+    }
+    Core.pause(); Core.disarm(); Listen.state = 'done';
     MediaSess.state(false); Deck.render(true);
   },
   ended: function () { if (Listen.state !== 'play') return; if (Listen.desc.kind === 'quran') Listen.nextRange(); else Listen.finish(); },
@@ -1128,24 +1270,17 @@ var Memo = {
     if (Active === Listen) Listen.stop();
     Active = Memo;
     S.now = { ctrl: 'memo' }; save('now');
-    Memo.withSource(function () {
-      Memo.buildPlan();
-      Memo.rep = 0;
-      if (opts.paused) { Memo.block = Memo.plan[Memo.bi]; Memo.state = 'paused'; Memo.pausedFrom = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Deck.render(true); }
-      else Memo.begin(true);
-    });
-    MediaSess.set('Memorise · ' + surah(S.pos.s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+    Memo.buildPlan();
+    Memo.rep = 0;
+    if (opts.paused) { Memo.block = Memo.plan[Memo.bi]; Memo.state = 'paused'; Memo.pausedFrom = 'cue'; Memo.played = 0; Memo.lastFrac = 0; Deck.render(true); }
+    else Memo.begin(true);
+    MediaSess.set('Memorise · ' + surah(S.pos.s).name, RECITER, 'Mushaf');
     Deck.render(true);
   },
-  withSource: function (cb) {
-    if (timings(S.memo.source)) return cb();
-    toast('Loading ' + SOURCE_LABEL[S.memo.source] + '…');
-    ensureTimings(S.memo.source).then(cb, function () { toast('Could not load ' + SOURCE_LABEL[S.memo.source]); S.memo.source = 'murattal'; save('memo'); cb(); });
-  },
   buildPlan: function () {
-    Memo.T = timings(S.memo.source)[String(S.pos.s)]; Memo.W = D.words[String(S.pos.s)];
-    Memo.plan = MushafPlan.planBlocks(S.pos.s, Memo.T, Memo.W, S.memo.mode);
-    Memo.planKey = S.pos.s + '/' + S.memo.mode + '/' + S.memo.source;
+    Memo.T = timings()[String(S.pos.s)]; Memo.W = D.words[String(S.pos.s)];
+    Memo.plan = MushafPlan.planBlocks(S.pos.s, Memo.T, Memo.W, S.memo.mode, { words: S.memo.words });
+    Memo.planKey = S.pos.s + '/' + S.memo.mode + '/' + S.memo.words;
     Memo.bi = MushafPlan.blockIndexFor(Memo.plan, S.pos.a);
   },
   begin: function (autoplay) {
@@ -1229,7 +1364,7 @@ var Memo = {
     var s = S.pos.s - 1; if (s < 1) return false;
     S.pos = { s: s, a: 1 }; save('pos');
     Memo.buildPlan(); Memo.bi = 0;
-    MediaSess.set('Memorise · ' + surah(s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+    MediaSess.set('Memorise · ' + surah(s).name, RECITER, 'Mushaf');
     if (window.Home) Home.refresh();
     return true;
   },
@@ -1265,25 +1400,35 @@ var Memo = {
     if (Memo.bi + 1 < Memo.plan.length) { Memo.bi++; Memo.rep = 0; Memo.begin(true); }
     else if (Memo.nextSurah()) { Memo.rep = 0; Memo.begin(true); }
   },
-  rebuild: function () {                     /* mode, source or position changed */
+  rebuild: function () {                     /* block mode, word count or position changed */
     var running = Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue';
-    Memo.withSource(function () {
-      Memo.buildPlan(); Memo.rep = 0;
-      if (Active === Memo && running) Memo.begin(true);
-      else { Memo.block = Memo.plan[Memo.bi]; Memo.state = Active === Memo ? 'paused' : 'idle'; Memo.pausedFrom = 'cue'; Memo.lastFrac = 0; Deck.render(true); }
-    });
+    Memo.buildPlan(); Memo.rep = 0;
+    if (Active === Memo && running) Memo.begin(true);
+    else { Memo.block = Memo.plan[Memo.bi]; Memo.state = Active === Memo ? 'paused' : 'idle'; Memo.pausedFrom = 'cue'; Memo.lastFrac = 0; Deck.render(true); }
   },
   setPosition: function (s, a) {
     S.pos = { s: s, a: a }; save('pos');
     if (window.Home) Home.refresh();
     Memo.rebuild();
-    MediaSess.set('Memorise · ' + surah(s).name, 'Husary · ' + SOURCE_LABEL[S.memo.source], 'Mushaf');
+    MediaSess.set('Memorise · ' + surah(s).name, RECITER, 'Mushaf');
   },
   set: function (k, v) {
     S.memo[k] = v; save('memo');
     if (k === 'speed') { if (Active === Memo) Core.setRate(v); Deck.render(true); return; }
-    if (k === 'mode' || k === 'source') { Memo.rebuild(); return; }
+    if (k === 'mode' || k === 'words') { Memo.rebuild(); return; }
     Deck.render(true);
+  },
+  /* The tick beside the position: he says "I have this now". Everything up to the end of the block
+     on screen (or the position, before anything has played) becomes memorised, and the position
+     moves on to the next ayah in his direction. It only ever EXTENDS what is memorised: a tap while
+     he is going back over an older ayah must not shrink months of work to that ayah. */
+  markMemorised: function () {
+    var b = Memo.block && Memo.block.s === S.pos.s ? Memo.block : null;
+    var upto = { s: S.pos.s, a: b ? b.a2 : S.pos.a };
+    if (!Mem.extend(upto)) { toast('Already memorised — ' + surah(upto.s).name + ' ' + upto.a); return; }
+    var nx = Mem.next();
+    toast('Memorised to ' + surah(upto.s).name + ' ' + upto.a + (nx ? ' · next ' + nx.s + ':' + nx.a : ''));
+    if (nx) Memo.setPosition(nx.s, nx.a);
   },
   /* Back from the background: trust the audio clock and the plan, not frozen timers. */
   wake: function () {
@@ -1348,16 +1493,22 @@ var Home = {
       /* the reference is the point of this line, so it is never what gets cut: the name ellipsises
          and the S:A keeps its width. The Arabic name is the one on the Memorise player, not here. */
       case 'memorize': return '<span class="nm">' + esc(su.name) + '</span><span class="rf">' + S.pos.s + ':' + S.pos.a + '</span>';
-      case 'revise': n = 604 - pageOf(S.pos.s, S.pos.a) + 1; return 'From ' + refStr(S.pos) + ' · ' + n + (n === 1 ? ' page' : ' pages');
+      case 'revise':
+        if (!S.mem || (!S.mem.last && !S.mem.extra.length)) return 'Mark what you know';
+        n = pagesIn(Mem.everything());
+        return n + (n === 1 ? ' page' : ' pages') + ' memorised';
       case 'husary':
         r = S.recent.husary;
         return r && r.s ? esc(surah(r.s).name) + ' · ' + r.s + ':' + r.a : '114 surahs';
+      case 'reciters':
+        r = S.recent.reciters;
+        if (r && r.title) return esc(r.title);
+        n = Rec.surahs().length; return n + (n === 1 ? ' surah' : ' surahs');
       default:
         c = D.content[id]; r = S.recent[id];
         if (r && r.title) return esc(r.title);
-        if (!c) return 'Not loaded';
+        if (!c || !c.items) return 'Not loaded';
         n = c.items.filter(function (it) { return it.url; }).length;
-        if (id === 'reciters') return c.items.length + ' recitations';
         return n ? n + ' of ' + c.items.length + ' ready' : c.items.length + ' coming';
     }
   },
@@ -1517,7 +1668,8 @@ var PICKERS = [
   { k: 'pause', label: 'Pause', values: PAUSES, fmt: fmtX },
   { k: 'repeat', label: 'Repeat', values: REPEATS, fmt: function (v) { return v === 0 ? '∞' : String(v); } },
   { k: 'mode', label: 'Block', values: MODES, fmt: function (v) { return MODE_LABEL[v]; } },
-  { k: 'source', label: 'Source', values: SOURCES, fmt: function (v) { return SOURCE_LABEL[v]; } }
+  /* only there while Block is Words: how many words each block holds */
+  { k: 'words', label: 'Words', values: WORD_COUNTS, fmt: String, when: function () { return S.memo.mode === 'words'; } }
 ];
 var Deck = {
   open: false, textKey: null, lit: null, openPicker: null, pickKey: null, lastTile: null, homeAt: 0, el: {},
@@ -1525,7 +1677,7 @@ var Deck = {
     var E = Deck.el;
     ['mini', 'miniTitle', 'miniSub', 'miniFill', 'miniPlay', 'miniExpand', 'player', 'grab',
       'lv', 'lvTitle', 'lvSub', 'lvTxt', 'lvText', 'lvInfo', 'lvProg', 'lvFill', 'lvT0', 'lvT1', 'lvPrev', 'lvPlay', 'lvNext', 'lvOptions', 'lvDl',
-      'mv', 'mvTitle', 'mvSub', 'mvTxt', 'mvText', 'mvStatus', 'mvPrev', 'mvPlay', 'mvNext', 'ringFill', 'mvGlyph', 'mvOptions', 'mvPickers', 'mvPos', 'mvPosVal'
+      'mv', 'mvTitle', 'mvSub', 'mvTxt', 'mvText', 'mvStatus', 'mvPrev', 'mvPlay', 'mvNext', 'ringFill', 'mvGlyph', 'mvOptions', 'mvPickers', 'mvPos', 'mvPosVal', 'mvOk'
     ].forEach(function (id) { E[id] = $(id); });
     setHTML(qs('.c', E.mvPos), ICON.chev);
     on(E.miniExpand, 'click', function () { Deck.show(); });
@@ -1550,10 +1702,12 @@ var Deck = {
     on(E.mvOptions, 'click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-v]') : null; if (!b || !Deck.openPicker) return;
       var k = Deck.openPicker, raw = b.getAttribute('data-v');
-      Memo.set(k, (k === 'mode' || k === 'source') ? raw : parseFloat(raw));
+      Memo.set(k, k === 'mode' ? raw : parseFloat(raw));
       Deck.pickKey = null; Deck.render(true);
     });
     on(E.mvPos, 'click', function () { showPositionPicker(); });
+    setHTML(E.mvOk, ICON.check);
+    on(E.mvOk, 'click', function () { Memo.markMemorised(); });
     /* grabber: a tap or a pull of more than 70px collapses the player back to the mini bar */
     var gy = null;
     on(E.grab, 'pointerdown', function (e) { gy = e.clientY; try { E.grab.setPointerCapture(e.pointerId); } catch (err) {} });
@@ -1647,8 +1801,10 @@ var Deck = {
       if (Deck.textKey !== k2) {
         Deck.textKey = k2; Deck.lit = null;
         /* the item, not its collection: the collection's name is the sub-line above and nowhere else */
+        /* a lecture leaves the box empty: its title is already the heading, and this is where its
+           transcript will scroll once there is one */
         if (info.arTitle) { E.lvText.className = 'in'; E.lvText.textContent = info.arTitle; }
-        else { E.lvText.className = 'in none'; E.lvText.textContent = info.title || ''; }
+        else { E.lvText.className = 'in none'; E.lvText.textContent = ''; }
       }
     }
     setText(E.lvInfo, info.info || '');
@@ -1675,7 +1831,7 @@ var Deck = {
     setText(E.mvTitle, info.title);
     setText(E.mvSub, info.sub || '');
     if (b) {
-      var key = 'M' + S.memo.source + ':' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
+      var key = 'M' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
       if (Deck.textKey !== key) {
         Deck.textKey = key; Deck.lit = null;
         var r = wordsHTML(b);
@@ -1698,14 +1854,15 @@ var Deck = {
     setHTML(E.mvGlyph, busy ? ICON.pause : ICON.play);
     setHTML(E.mvPrev, ICON.prev);                 /* the glyphs candidate c never drew */
     setHTML(E.mvNext, ICON.next);
-    var pk = '';
-    PICKERS.forEach(function (p) {
+    var pk = '', shown = PICKERS.filter(function (p) { return !p.when || p.when(); });
+    if (Deck.openPicker && !shown.some(function (p) { return p.k === Deck.openPicker; })) Deck.openPicker = null;
+    shown.forEach(function (p) {
       pk += '<button data-k="' + p.k + '"' + (Deck.openPicker === p.k ? ' class="open"' : '') + ' aria-label="' + p.label + '">' +
         '<span class="lbl">' + p.label + '</span><span class="val">' + esc(p.fmt(S.memo[p.k])) + '</span></button>';
     });
     setHTML(E.mvPickers, pk);
     var cur = null;
-    PICKERS.forEach(function (p) { if (p.k === Deck.openPicker) cur = p; });
+    shown.forEach(function (p) { if (p.k === Deck.openPicker) cur = p; });
     var okey = cur ? cur.k + ':' + S.memo[cur.k] : 'none';
     if (Deck.pickKey !== okey) {
       Deck.pickKey = okey;
@@ -1746,6 +1903,7 @@ function Sheet(id) {
 /* a fresh node carries no listeners, so wiring a sheet again can never double-fire an old one */
 function freshen(node) { var n = node.cloneNode(false); node.parentNode.replaceChild(n, node); return n; }
 Sheet.prototype.show = function (title, sub, bodyHTML, toolsHTML, rightHTML) {
+  this.kind = null;
   this.body = freshen(this.body); this.tools = freshen(this.tools); this.right = freshen(this.right);
   this.h2.textContent = title;
   this.ssub.textContent = sub || ''; this.ssub.classList.toggle('hide', !sub);
@@ -1757,99 +1915,231 @@ Sheet.prototype.show = function (title, sub, bodyHTML, toolsHTML, rightHTML) {
 Sheet.prototype.hide = function () { this.el.classList.remove('show'); var i = qs('input', this.tools); if (i) i.blur(); };
 var sheetA, sheetB;
 
-/* --- the surah picker, grouped by juz, with dimmed continuation rows --- */
-function surahRowHTML(n, fromA, cont, playing) {
-  var s = surah(n), pos = S.resume['q:' + n], sub;
-  if (cont) sub = 'from ayah ' + fromA + ' · page ' + pageOf(n, fromA);
-  else {
-    sub = s.ayahs + ' ayat · page ' + s.page;
-    if (pos > 3 && S.recent.husary && S.recent.husary.s === n) sub += '<b> · at ' + n + ':' + S.recent.husary.a + '</b>';
-  }
-  return '<button class="row' + (cont ? ' cont' : '') + (playing ? ' playing' : '') + '" data-surah="' + n + '" data-from="' + fromA + '" data-cont="' + (cont ? 1 : 0) + '" ' +
-    'data-q="' + esc((n + ' ' + s.name + ' ' + s.en + ' ' + s.arabic + ' ' + s.name.replace(/[-’\' ]/g, '')).toLowerCase()) + '">' +
+/* --- surah lists: grouped by juz, searchable by name, number or page, in either order --- */
+/* o: { from, cont, cls, sub (HTML, already escaped), q (extra search text) } */
+function surahRowHTML(n, o) {
+  o = o || {};
+  var s = surah(n), fromA = o.from || 1, cont = !!o.cont, sub = o.sub;
+  if (sub == null) sub = cont ? 'from ayah ' + fromA + ' · page ' + pageOf(n, fromA) : s.ayahs + ' ayat · page ' + s.page;
+  var q = (n + ' ' + s.name + ' ' + s.en + ' ' + s.arabic + ' ' + s.name.replace(/[-’\' ]/g, '') + ' ' + (o.q || '')).toLowerCase();
+  return '<button class="row' + (cont ? ' cont' : '') + (o.cls ? ' ' + o.cls : '') + '" data-surah="' + n + '" data-from="' + fromA + '" data-cont="' + (cont ? 1 : 0) + '" ' +
+    'data-q="' + esc(q) + '">' +
     '<span class="n">' + n + '</span>' +
     '<span class="mid"><span class="t">' + esc(s.name) + '</span><span class="s">' + sub + '</span></span>' +
     '<span class="arn" lang="ar">' + esc(s.arabic) + '</span></button>';
 }
+/* opts: { desc, juz (the one to mark), noCont (skip the "from ayah N" row a juz opens with),
+          only (n -> bool), row (n, fromA, cont -> html) } */
 function surahListHTML(opts) {
-  var html = '', j, n, myJuz = opts.juz;
-  for (j = 1; j <= 30; j++) {
-    var st = parseRef(D.meta.juzStarts[j - 1]), en = juzEnd(j), note = '';
-    if (st.a > 1) note = surah(st.s).name + ' from ' + refStr(st);
-    html += '<div class="jz' + (j === myJuz ? ' on' : '') + '" data-juz="' + j + '"><span class="jn">Juz ' + j + '</span><span class="jn">' + esc(note) + '</span></div>';
-    for (n = st.s; n <= en.s; n++) html += surahRowHTML(n, n === st.s ? st.a : 1, n === st.s && st.a > 1, opts.playing === n);
-  }
+  var html = '', js = [], j;
+  for (j = 1; j <= 30; j++) js.push(j);
+  if (opts.desc) js.reverse();
+  js.forEach(function (j) {
+    var st = parseRef(D.meta.juzStarts[j - 1]), en = juzEnd(j), ns = [], n, rows = '';
+    for (n = st.s; n <= en.s; n++) ns.push(n);
+    if (opts.desc) ns.reverse();
+    ns.forEach(function (n) {
+      var cont = n === st.s && st.a > 1;
+      if (cont && opts.noCont) return;
+      if (opts.only && !opts.only(n)) return;
+      rows += opts.row(n, cont ? st.a : 1, cont);
+    });
+    if (!rows) return;
+    var note = st.a > 1 && !opts.noCont ? surah(st.s).name + ' from ' + refStr(st) : '';
+    html += '<div class="jz' + (j === opts.juz ? ' on' : '') + '" data-juz="' + j + '"><span class="jn">Juz ' + j + '</span><span class="jn">' + esc(note) + '</span></div>' + rows;
+  });
   return html;
 }
-function wireSurahList(sheet, onPick) {
-  var input = qs('input', sheet.tools), jump = qs('[data-jump]', sheet.tools), body = sheet.body;
+function searchTools(id, juz, placeholder) {
+  return '<div class="search"><input type="text" inputmode="search" enterkeyhint="search" placeholder="' + esc(placeholder) + '" ' +
+    'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search">' +
+    (juz ? '<button class="txtbtn jump" data-jump="' + juz + '">Juz ' + juz + '</button>' : '') +
+    '<button class="sort' + (S.ui[id] === 'desc' ? ' desc' : '') + '" data-sort aria-label="Reverse the order">' + ICON.sort + '</button></div>';
+}
+/* cfg: { id (sort memory), build(desc) -> list html, head() -> html shown above the list when not
+          searching, pages (a number up to 604 also finds the surah on that page),
+          onPick(n, fromA, row), onClick(e) -> true when it handled the click itself, scrollTo } */
+function wireSurahList(sheet, cfg) {
+  var input = qs('input', sheet.tools), jump = qs('[data-jump]', sheet.tools), sortB = qs('[data-sort]', sheet.tools), body = sheet.body;
+  var hit = document.createElement('div'), head = document.createElement('div'), list = document.createElement('div');
+  hit.className = 'pagehit'; head.className = 'lhead';
+  body.innerHTML = ''; body.appendChild(hit); body.appendChild(head); body.appendChild(list);
+  function paint() {
+    list.innerHTML = cfg.build(S.ui[cfg.id] === 'desc');
+    head.innerHTML = cfg.head ? cfg.head() : '';
+    if (sortB) sortB.classList.toggle('desc', S.ui[cfg.id] === 'desc');
+    filter();
+  }
   function filter() {
-    var q = input.value.trim().toLowerCase(), qn = /^\d+$/.test(q) ? +q : 0;
-    qsa('.row', body).forEach(function (r) {
+    var q = input ? input.value.trim().toLowerCase() : '', qn = /^\d+$/.test(q) ? +q : 0;
+    qsa('.row.alt', list).forEach(function (r) { r.parentNode.removeChild(r); });   /* searching folds any open choice */
+    qsa('.row[data-surah]', list).forEach(function (r) {
       var ok = !q || (qn ? String(+r.getAttribute('data-surah')).indexOf(q) === 0 : r.getAttribute('data-q').indexOf(q) >= 0);
       r.classList.toggle('hide', !ok);
     });
-    qsa('.jz', body).forEach(function (h) {
+    qsa('.jz', list).forEach(function (h) {
       var nx = h.nextElementSibling, any = false;
       while (nx && !nx.classList.contains('jz')) { if (!nx.classList.contains('hide')) any = true; nx = nx.nextElementSibling; }
       h.classList.toggle('hide', !!q && !any);
     });
+    head.classList.toggle('hide', !!q);
+    /* a number is also a page: "93" finds surah 93 and whatever surah page 93 is in */
+    if (cfg.pages && qn >= 1 && qn <= 604) {
+      var ps = pageStart(qn);
+      hit.innerHTML = '<div class="jz"><span class="jn num">Page ' + qn + '</span></div>' +
+        surahRowHTML(ps.s, { from: ps.a, cont: true, cls: 'pg', sub: 'page ' + qn + ' · from ayah ' + ps.a });
+    } else hit.innerHTML = '';
   }
+  paint();
   if (input) on(input, 'input', filter);
+  if (sortB) on(sortB, 'click', function () {
+    S.ui[cfg.id] = S.ui[cfg.id] === 'desc' ? 'asc' : 'desc'; save('ui');
+    paint(); body.scrollTop = 0;
+  });
   if (jump) on(jump, 'click', function () {
     if (input) { input.value = ''; filter(); }
-    var h = qs('.jz[data-juz="' + jump.getAttribute('data-jump') + '"]', body);
+    var h = qs('.jz[data-juz="' + jump.getAttribute('data-jump') + '"]', list);
     if (h) body.scrollTop = h.offsetTop - body.offsetTop;
   });
   on(body, 'click', function (e) {
+    if (cfg.onClick && cfg.onClick(e)) return;
     var row = e.target.closest ? e.target.closest('.row[data-surah]') : null; if (!row) return;
-    onPick(+row.getAttribute('data-surah'), row.getAttribute('data-cont') === '1' ? +row.getAttribute('data-from') : 0);
+    cfg.onPick(+row.getAttribute('data-surah'), row.getAttribute('data-cont') === '1' ? +row.getAttribute('data-from') : 0, row);
   });
+  if (cfg.scrollTo) { var t = qs(cfg.scrollTo, list); if (t) body.scrollTop = Math.max(0, t.offsetTop - body.offsetTop - 8); }
+  return { paint: paint };
+}
+function husarySub(n) {
+  var s = surah(n), sub = s.ayahs + ' ayat · page ' + s.page;
+  if (S.resume['q:' + n] > 3 && S.recent.husary && S.recent.husary.s === n) sub += '<b> · at ' + n + ':' + S.recent.husary.a + '</b>';
+  return sub;
 }
 function showSurahPicker() {
   var myJuz = juzOf(S.pos.s, S.pos.a), playing = Active === Listen && Listen.desc && Listen.desc.kind === 'quran' ? Listen.ranges[Listen.ri].s : 0;
-  var tools = '<div class="search"><input type="text" inputmode="search" enterkeyhint="search" placeholder="Surah name or number" ' +
-    'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search surahs">' +
-    '<button class="txtbtn jump" data-jump="' + myJuz + '">Juz ' + myJuz + '</button></div>';
-  sheetA.show('Quran', 'Mahmoud Khalil al-Husary · Murattal', surahListHTML({ juz: myJuz, playing: playing }), tools);
-  wireSurahList(sheetA, function (n, fromA) { sheetA.hide(); playHusaryFrom(n, fromA); });
+  sheetA.show('Quran', RECITER + ' · Murattal', '', searchTools('husary', myJuz, 'Surah, number or page'));
+  wireSurahList(sheetA, { id: 'husary', pages: true,
+    build: function (desc) {
+      return surahListHTML({ desc: desc, juz: myJuz, row: function (n, fromA, cont) {
+        return surahRowHTML(n, { from: fromA, cont: cont, cls: playing === n ? 'playing' : '', sub: cont ? null : husarySub(n) });
+      } });
+    },
+    onPick: function (n, fromA) { sheetA.hide(); playHusaryFrom(n, fromA); } });
+}
+/* the ayah grid that follows a surah pick */
+function showAyahGrid(sheet, title, n, cur, onChoose, onBack) {
+  var su = surah(n), h = '<div class="subhd">' + esc(su.name) + ' · ' + su.ayahs + ' ayat</div><div class="ayahs">', a;
+  for (a = 1; a <= su.ayahs; a++) h += '<button data-a="' + a + '"' + (cur && cur.s === n && cur.a === a ? ' class="on"' : '') + '>' + a + '</button>';
+  h += '</div>';
+  sheet.show(title, su.arabic + ' · choose the ayah', h, '', '<button class="txtbtn" data-back>Surahs</button>');
+  on(qs('[data-back]', sheet.right), 'click', onBack);
+  var c = qs('.ayahs .on', sheet.body);
+  if (c) sheet.body.scrollTop = Math.max(0, c.offsetTop - sheet.body.offsetTop - 120);
+  on(sheet.body, 'click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-a]') : null; if (!b) return;
+    onChoose(+b.getAttribute('data-a'));
+  });
 }
 
-/* --- revision: the four ranges, each resolved into names --- */
+/* --- revision: only what he has marked as memorised, each choice resolved into names --- */
+function spanHTML(ranges) {                  /* "Al-Insan 1 → An-Naba 16" */
+  var a = ranges[0], b = ranges[ranges.length - 1];
+  if (ranges.length === 1 && a.a1 === 1 && a.a2 === surah(a.s).ayahs) return 'All of <b>' + esc(surah(a.s).name) + '</b>';
+  return '<b>' + esc(surah(a.s).name) + ' ' + a.a1 + '</b> → <b>' + esc(surah(b.s).name) + ' ' + b.a2 + '</b>';
+}
+function pagesHTML(ranges) {
+  var p1 = pageOf(ranges[0].s, ranges[0].a1), last = ranges[ranges.length - 1], p2 = pageOf(last.s, last.a2);
+  return p1 === p2 ? 'Page ' + p1 : 'Pages ' + p1 + '–' + p2;
+}
 function revisionChoices() {
-  var P = pageOf(S.pos.s, S.pos.a), P2 = Math.min(P + 4, 604), pos = { s: S.pos.s, a: S.pos.a }, su = surah(S.pos.s), J = juzOf(S.pos.s, S.pos.a);
-  var ps = pageStart(P), pe = pageEnd(P2), je = juzEnd(J);
-  return [
-    { id: 'pages', name: 'Last 5 pages',
-      def: 'Pages ' + P + '–' + P2 + ': from the first ayah of page ' + P + ' (<b>' + esc(surah(ps.s).name) + ' ' + ps.a + '</b>) to the end of page ' + P2 + ' (<b>' + esc(surah(pe.s).name) + ' ' + pe.a + '</b>)',
-      from: ps, to: pe },
-    { id: 'surah', name: 'Last surah',
-      def: 'All of <b>' + esc(su.name) + '</b> · ' + su.ayahs + ' ayat',
-      from: { s: su.n, a: 1 }, to: { s: su.n, a: su.ayahs } },
-    { id: 'juz', name: 'Last juz',
-      def: 'From <b>' + esc(su.name) + ' ' + pos.a + '</b> to the end of Juz ' + J + ' (<b>' + esc(surah(je.s).name) + ' ' + je.a + '</b>)',
-      from: pos, to: je },
-    { id: 'all', name: 'Everything',
-      def: 'From <b>' + esc(su.name) + ' ' + pos.a + '</b> to <b>An-Nas 6</b> — all you have memorised',
-      from: pos, to: { s: 114, a: 6 } }
-  ];
+  var out = [], l = S.mem.last;
+  function add(id, name, ranges, def) { if (ranges.length) out.push({ id: id, name: name, ranges: ranges, def: def }); }
+  if (l) {
+    var p5 = Mem.recent(5), pj = Mem.recent(20), ls = Mem.lastSurah();
+    add('pages', 'Last 5 pages', p5, p5.length ? pagesHTML(p5) + ' · ' + spanHTML(p5) : '');
+    add('surah', 'Last surah', ls, ls.length ? spanHTML(ls) + (l.a < surah(l.s).ayahs ? ' · as far as you have it' : '') : '');
+    /* a juz boundary rarely falls where he is, so "last juz" is a juz's worth: the 20 pages he
+       learnt most recently */
+    add('juz', 'Last juz', pj, pj.length ? 'The 20 pages you learnt last · ' + pagesHTML(pj) + ' · ' + spanHTML(pj) : '');
+  }
+  var all = Mem.everything();
+  add('all', 'Everything', all, all.length ? pagesIn(all) + ' pages · ' + esc(Mem.summary()) : '');
+  Mem.extras().forEach(function (n) {
+    var su = surah(n), r = [{ s: n, a1: 1, a2: su.ayahs }];
+    add('x' + n, su.name, r, su.ayahs + ' ayat · ' + pagesHTML(r));
+  });
+  return out;
+}
+function memRowHTML() {
+  return '<button class="posrow" data-mem><span class="l">Memorised</span><span class="v">' + esc(Mem.summary()) + '</span><span class="c">' + ICON.chev + '</span></button>';
 }
 function showRevision() {
-  var ch = revisionChoices(), html = '';
-  ch.forEach(function (c) { html += '<button class="choice" data-rev="' + c.id + '"><span class="nm">' + c.name + '</span><span class="df">' + c.def + '</span></button>'; });
-  html += '<div class="hint">Continuous Husary at your listening speed, no pauses.</div>';
-  sheetA.show('Revise', 'Position ' + surah(S.pos.s).name + ' ' + refStr(S.pos), html);
+  var ch = revisionChoices(), html = memRowHTML();
+  ch.forEach(function (c) { html += '<button class="choice" data-rev="' + c.id + '"><span class="nm">' + esc(c.name) + '</span><span class="df">' + c.def + '</span></button>'; });
+  html += '<div class="hint">' + (ch.length ? 'Continuous Husary at your listening speed, no pauses. Only what you have marked as memorised.'
+                                            : 'Mark what you have memorised first — listening never counts on its own.') + '</div>';
+  sheetA.show('Revise', '', html);
+  sheetA.kind = 'revise';
   on(sheetA.body, 'click', function (e) {
+    if (e.target.closest && e.target.closest('[data-mem]')) { showMemorised(); return; }
     var b = e.target.closest ? e.target.closest('[data-rev]') : null; if (!b) return;
     var id = b.getAttribute('data-rev'), c = null;
     revisionChoices().forEach(function (x) { if (x.id === id) c = x; });
-    var ranges = rangesBetween(c.from, c.to);
-    if (!ranges.length) { toast('Nothing in that range'); return; }
+    if (!c) return;
     sheetA.hide();
-    Listen.start({ kind: 'quran', source: 'murattal', ranges: ranges, title: c.name, sub: 'Revise · ' + c.name.toLowerCase(),
+    Listen.start({ kind: 'quran', source: 'murattal', ranges: c.ranges, title: c.name, sub: 'Revise · ' + c.name,
       remember: false, tile: 'revise', recent: { title: c.name } });
     Deck.show();
   });
+}
+
+/* --- memorised: the last ayah of his run from the back, and whole surahs outside it --- */
+function showMemorised() {
+  var l = S.mem.last, html = '';
+  html += '<button class="posrow" data-last><span class="l">Last memorised</span><span class="v num">' +
+    (l ? esc(surah(l.s).name) + ' ' + l.s + ':' + l.a : 'Not set') + '</span><span class="c">' + ICON.chev + '</span></button>';
+  html += '<div class="hint">' + (l ? 'From here back to An-Nas counts as memorised. Setting it moves Memorise to the next ayah.'
+                                    : 'The last ayah you know in your run from the back.') + '</div>';
+  html += '<div class="sect">Also memorised</div>';
+  S.mem.extra.forEach(function (n) {
+    html += '<div class="erow"><button class="pm" data-rmx="' + n + '" aria-label="Remove ' + esc(surah(n).name) + '">' + ICON.minus + '</button>' +
+      '<span class="nm"><span class="num">' + n + '</span>  ' + esc(surah(n).name) + '</span></div>';
+  });
+  html += '<div class="erow"><button class="pm" data-addx aria-label="Add a surah">' + ICON.plus + '</button><span class="nm" data-addx>Add a surah</span></div>';
+  var all = Mem.everything();
+  html += '<div class="hint num">' + (all.length ? pagesIn(all) + ' pages in all' : '') + '</div>';
+  sheetB.show('Memorised', 'Only what you mark here counts — listening never does.', html);
+  on(sheetB.body, 'click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-last],[data-rmx],[data-addx]') : null; if (!t) return;
+    if (t.hasAttribute('data-last')) return pickLastMemorised();
+    if (t.hasAttribute('data-addx')) return pickExtra();
+    Mem.removeExtra(+t.getAttribute('data-rmx')); memChanged(); showMemorised();
+  });
+}
+function memChanged() { if (sheetA.kind === 'revise' && sheetA.el.classList.contains('show')) showRevision(); }
+function pickLastMemorised() {
+  var l = S.mem.last, j = l ? juzOf(l.s, l.a) : 30;
+  sheetB.show('Last memorised', 'Surah, then the ayah', '', searchTools('mem', j, 'Surah, number or page'));
+  wireSurahList(sheetB, { id: 'mem', pages: true, scrollTo: '.row.playing',
+    build: function (desc) {
+      return surahListHTML({ desc: desc, juz: j, noCont: true, row: function (n) { return surahRowHTML(n, { cls: l && l.s === n ? 'playing' : '' }); } });
+    },
+    onPick: function (n) {
+      showAyahGrid(sheetB, 'Last memorised', n, l, function (a) {
+        Mem.setLast({ s: n, a: a });
+        var nx = Mem.next();
+        if (nx) { Memo.setPosition(nx.s, nx.a); toast('Memorise starts at ' + surah(nx.s).name + ' ' + nx.a); }
+        memChanged(); showMemorised();
+      }, pickLastMemorised);
+    } });
+}
+function pickExtra() {
+  sheetB.show('Add a surah', 'A whole surah you know outside your run', '', searchTools('add', 0, 'Surah, number or page'));
+  wireSurahList(sheetB, { id: 'add', pages: false,
+    build: function (desc) {
+      return surahListHTML({ desc: desc, noCont: true, only: function (n) { return S.mem.extra.indexOf(n) < 0 && !Mem.covers(n); },
+        row: function (n) { return surahRowHTML(n); } });
+    },
+    onPick: function (n) { Mem.addExtra(n); memChanged(); showMemorised(); } });
 }
 
 /* --- collections and recitations --- */
@@ -1884,57 +2174,184 @@ function playCollectionItem(kind, it) {
     tile: kind, recent: { id: it.id, title: it.title }, duration: it.duration || 0 });
   Deck.show();
 }
-function showReciters() {
-  var c = D.content.reciters, html = '';
-  if (!c) { toast('Could not load the recitations'); return; }
-  c.items.forEach(function (it) {
-    var su = it.surah ? surah(it.surah) : null, res = S.resume['r:' + it.id];
-    html += '<button class="row' + (it.url ? '' : ' off') + '" data-item="' + esc(it.id) + '"' + (it.url ? '' : ' disabled') + '>' +
-      '<span class="n">' + (su ? su.n : '') + '</span>' +
-      '<span class="mid"><span class="t">' + esc(it.title) + '</span><span class="s">' + esc(it.reciter || '') + (res > 3 ? '<b> · resume at ' + fmtTime(res) + '</b>' : '') + '</span></span>' +
-      (su ? '<span class="arn" lang="ar">' + esc(su.arabic) + '</span>' : '') + '</button>';
-  });
-  sheetA.show(c.title || 'Recitations', 'Favourite reciter and surah pairs', html);
-  on(sheetA.body, 'click', function (e) {
-    var row = e.target.closest ? e.target.closest('[data-item]') : null; if (!row) return;
-    var id = row.getAttribute('data-item'), it = null;
-    c.items.forEach(function (x) { if (x.id === id) it = x; });
-    if (!it || !it.url) return;
-    sheetA.hide(); playReciterItem(it);
-  });
+/* ============================================================================
+   Recitations: a recitation per surah (sometimes two), and five picks from what he listens to.
+   content/reciters.json: { title, surahs: { "36": [ { reciter, url }, … ], … } }
+   ========================================================================= */
+var Rec = {
+  byS: {}, list: [], byId: {},
+  build: function () {
+    var c = D.content.reciters;
+    Rec.byS = {}; Rec.list = []; Rec.byId = {};
+    if (!c) return;
+    function add(n, reciter, url) {
+      n = +n;
+      if (!(n >= 1 && n <= 114) || !url) return;
+      var id = n + '-' + String(reciter || 'reciter').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (Rec.byId[id]) return;
+      var it = { id: id, surah: n, reciter: reciter || '', url: url };
+      (Rec.byS[n] = Rec.byS[n] || []).push(it); Rec.list.push(it); Rec.byId[id] = it;
+    }
+    if (c.surahs) Object.keys(c.surahs).forEach(function (k) { (c.surahs[k] || []).forEach(function (r) { add(k, r.reciter, r.url); }); });
+    if (c.items) c.items.forEach(function (r) { add(r.surah, r.reciter, r.url); });      /* the first format */
+  },
+  surahs: function () { return Object.keys(Rec.byS).map(Number).sort(function (a, b) { return a - b; }); },
+  /* "Muhammad Siddiq al-Minshawi" -> "al-Minshawi"; "Abdul Basit (Mujawwad)" -> "Abdul Basit (Mujawwad)" */
+  short: function (name) {
+    var style = /\(([^)]+)\)/.exec(name || ''), w = String(name || '').replace(/\s*\(.*\)\s*/, '').trim().split(/\s+/);
+    var last = w[w.length - 1] || '', core = /^(al|as|ash|ad|ar|an|at|az)-/i.test(last) || w.length < 2 ? last : w.slice(-2).join(' ');
+    return core + (style ? ' (' + style[1] + ')' : '');
+  },
+  /* listening time, counted while it really plays; a listen of 30 s or more is a play */
+  hist: function (id) { return S.hist[id] || (S.hist[id] = { secs: 0, last: 0, plays: 0, seen: 0 }); },
+  started: function (id) { var h = Rec.hist(id); h.seen = 0; h.session = 0; h.counted = false; save('hist'); },
+  /* what plays when a recitation ends, or when the tile is tapped and the last one was finished */
+  after: function (id) {
+    var p = Rec.picks().filter(function (it) { return it.id !== id; });
+    if (p.length) return p[0];
+    var cur = Rec.byId[id], ss = Rec.surahs(), i = cur ? ss.indexOf(cur.surah) : -1;
+    var n = ss.length ? ss[(i + 1) % ss.length] : 0;
+    return n ? Rec.byS[n][0] : null;
+  },
+  heard: function (id, dt) {
+    var h = Rec.hist(id); h.secs += dt; h.last = Date.now(); h.session = (h.session || 0) + dt;
+    if (h.session >= 30 && !h.counted) { h.plays++; h.counted = true; }
+  },
+  /* Five picks, and not the YouTube failure of the same thing over and over:
+     - familiar: what he listens to most, fading by half every 14 days;
+     - similar: the same reciter in another surah, or a surah near one he loves (within three,
+       or in the same juz), weighted by how much he loves that one;
+     alternated familiar, similar, familiar, similar, familiar. The one just played is left out, a
+     surah appears once, a reciter at most twice, and anything shown without being played fades a
+     little each time the list opens, so the five keep moving. */
+  picks: function () {
+    var H = S.hist, now = Date.now(), DAY = 864e5, lastId = S.recent.reciters && S.recent.reciters.id;
+    function fam(it) { var h = H[it.id]; return h && h.secs > 0 ? Math.log(1 + h.secs / 60) * Math.pow(0.5, (now - h.last) / (14 * DAY)) : 0; }
+    function fatigue(it) { var h = H[it.id]; return h && h.seen ? Math.pow(0.8, h.seen) : 1; }
+    var heard = Rec.list.filter(function (it) { return H[it.id] && H[it.id].secs >= 30; });
+    if (!heard.length) return [];
+    var top = heard.slice().sort(function (a, b) { return fam(b) - fam(a); }).slice(0, 4);
+    function sim(it) {
+      var s = 0, a = surah(it.surah);
+      top.forEach(function (t) {
+        if (t.id === it.id) return;
+        var w = fam(t), b = surah(t.surah), ratio = Math.max(a.ayahs, b.ayahs) / Math.min(a.ayahs, b.ayahs);
+        if (t.reciter && t.reciter === it.reciter) s += w;
+        if (Math.abs(t.surah - it.surah) <= 3) s += 0.6 * w;
+        if (b.juz === a.juz) s += 0.4 * w;
+        if (b.makki === a.makki) s += 0.2 * w;           /* the gentler kinds of alike, so a small */
+        if (ratio <= 2) s += 0.2 * w;                    /* list still has something to offer    */
+      });
+      return s;
+    }
+    function byScore(a, b) { return b.sc - a.sc; }
+    var F = heard.filter(function (it) { return it.id !== lastId; }).map(function (it) { return { it: it, sc: fam(it) * fatigue(it) }; }).sort(byScore);
+    var Sm = Rec.list.filter(function (it) { return it.id !== lastId && !(H[it.id] && H[it.id].secs >= 600); })
+      .map(function (it) { return { it: it, sc: sim(it) * fatigue(it) }; }).filter(function (x) { return x.sc > 0; }).sort(byScore);
+    var out = [], usedS = {}, perR = {}, fi = 0, si = 0, turn = 0;
+    function take(arr, i) {
+      for (; i < arr.length; i++) {
+        var it = arr[i].it;
+        if (usedS[it.surah] || (perR[it.reciter] || 0) >= 2) continue;
+        usedS[it.surah] = 1; perR[it.reciter] = (perR[it.reciter] || 0) + 1; out.push(it);
+        return i + 1;
+      }
+      return -1;
+    }
+    while (out.length < 5 && (fi >= 0 || si >= 0)) {
+      if (turn % 2 === 0 && fi >= 0) fi = take(F, fi);
+      else if (si >= 0) si = take(Sm, si);
+      else fi = take(F, fi);
+      turn++;
+      if (fi < 0 && si < 0) break;
+    }
+    /* still short: what he has not heard for longest (never heard first) - exploration, not a loop */
+    if (out.length < 5) {
+      var Fr = Rec.list.filter(function (it) { return it.id !== lastId; })
+        .map(function (it) { var h = H[it.id]; return { it: it, sc: (h && h.last ? (now - h.last) / DAY : 1e6) * fatigue(it) }; }).sort(byScore);
+      for (var fr = 0; out.length < 5 && fr >= 0;) fr = take(Fr, fr);
+    }
+    return out;
+  },
+  shown: function (items) { items.forEach(function (it) { Rec.hist(it.id).seen++; }); save('hist'); }
+};
+function recRowsHTML(n, cls) {
+  var list = Rec.byS[n] || [];
+  /* one reader: the full name; two: the short names, so both fit on the line */
+  return surahRowHTML(n, { cls: cls, sub: esc(list.length === 1 ? list[0].reciter : list.map(function (r) { return Rec.short(r.reciter); }).join(' · ')),
+    q: list.map(function (r) { return r.reciter; }).join(' ') });
 }
-function playReciterItem(it) {
-  var su = it.surah ? surah(it.surah) : null;
-  Listen.start({ kind: 'file', url: it.url, title: it.title, arTitle: su ? su.arabic : '', sub: it.reciter || '',
-    key: 'r:' + it.id, speedSet: 'q', tile: 'reciters', recent: { id: it.id, title: it.title + ' · ' + (it.reciter || '').split(' ').slice(-1)[0] },
-    info: su ? su.name + ' · ' + su.ayahs + ' ayat · Page ' + su.page : '' });
-  Deck.show();
+function recAltHTML(it) {
+  var res = S.resume['r:' + it.id];
+  return '<button class="row alt" data-rec="' + esc(it.id) + '"><span class="mid"><span class="t">' + esc(it.reciter) + '</span>' +
+    (res > 3 ? '<span class="s"><b>resume at ' + fmtTime(res) + '</b></span>' : '') + '</span></button>';
+}
+function showReciters() {
+  if (!Rec.list.length) { toast('No recitations yet'); return; }
+  var picks = Rec.picks(), nS = Rec.surahs().length, nR = {};
+  Rec.list.forEach(function (it) { nR[it.reciter] = 1; });
+  if (picks.length) Rec.shown(picks);
+  sheetA.show('Recitations', nS + (nS === 1 ? ' surah' : ' surahs') + ' · ' + Object.keys(nR).length + ' reciters', '', searchTools('rec', 0, 'Surah, number or reciter'));
+  wireSurahList(sheetA, { id: 'rec', pages: false,
+    head: function () {
+      if (!picks.length) return '';
+      var h = '<div class="jz"><span class="jn">For you</span></div>';
+      picks.forEach(function (it) {
+        var su = surah(it.surah);
+        h += '<button class="row" data-rec="' + esc(it.id) + '"><span class="n">' + su.n + '</span><span class="mid"><span class="t">' + esc(su.name) + '</span>' +
+          '<span class="s">' + esc(it.reciter) + '</span></span><span class="arn" lang="ar">' + esc(su.arabic) + '</span></button>';
+      });
+      return h;
+    },
+    build: function (desc) {
+      var playing = Active === Listen && Listen.desc && Listen.desc.tile === 'reciters' ? Listen.desc.surah : 0;
+      return surahListHTML({ desc: desc, noCont: true, only: function (n) { return !!Rec.byS[n]; },
+        row: function (n) { return recRowsHTML(n, playing === n ? 'playing' : ''); } });
+    },
+    onClick: function (e) {
+      var r = e.target.closest ? e.target.closest('[data-rec]') : null;
+      if (!r) return false;
+      var it = Rec.byId[r.getAttribute('data-rec')];
+      if (it) { sheetA.hide(); playReciterItem(it); }
+      return true;
+    },
+    /* one recitation plays; two or more open their names under the row to choose from */
+    onPick: function (n, fromA, row) {
+      var list = Rec.byS[n] || [];
+      if (list.length === 1) { sheetA.hide(); playReciterItem(list[0]); return; }
+      var open = row.nextElementSibling && row.nextElementSibling.classList.contains('alt');
+      qsa('.row.alt', sheetA.body).forEach(function (x) { x.parentNode.removeChild(x); });
+      if (!open) row.insertAdjacentHTML('afterend', list.map(recAltHTML).join(''));
+    } });
+}
+function playReciterItem(it, quiet) {
+  var su = surah(it.surah);
+  Rec.started(it.id);
+  Listen.start({ kind: 'file', url: it.url, title: su.name, arTitle: su.arabic, sub: it.reciter || '', surah: it.surah, recId: it.id,
+    key: 'r:' + it.id, speedSet: 'q', tile: 'reciters', recent: { id: it.id, title: su.name + ' · ' + Rec.short(it.reciter) },
+    info: su.ayahs + ' ayat · Page ' + su.page });
+  if (!quiet) Deck.show();
+}
+/* the tile: resume the last recitation where it stopped; if it had finished, the first pick */
+function resumeReciters() {
+  var last = S.recent.reciters, it = last && last.id ? Rec.byId[last.id] : null;
+  if (it && !(S.resume['r:' + it.id] > 3)) it = Rec.after(it.id) || it;
+  if (!it) it = Rec.picks()[0] || Rec.list[0];
+  if (!it) { toast('No recitations yet'); return; }
+  playReciterItem(it);
 }
 
-/* --- the position picker: surahs from the back, then the ayah --- */
+/* --- the position picker: juz by juz like the Quran list, from the back by default --- */
 function showPositionPicker() {
-  var html = '', n;
-  for (n = 114; n >= 1; n--) html += surahRowHTML(n, 1, false, n === S.pos.s);
-  sheetB.show('I am learning', 'Surah, then the ayah. Surahs run from the back.', html);
-  var cur = qs('.row.playing', sheetB.body);
-  if (cur) sheetB.body.scrollTop = Math.max(0, cur.offsetTop - sheetB.body.offsetTop - 8);
-  on(sheetB.body, 'click', function (e) {
-    var row = e.target.closest ? e.target.closest('.row[data-surah]') : null; if (!row) return;
-    showAyahGrid(+row.getAttribute('data-surah'));
-  });
-  function showAyahGrid(n) {
-    var su = surah(n), h = '<div class="subhd">' + esc(su.name) + ' · ' + su.ayahs + ' ayat</div><div class="ayahs">', a;
-    for (a = 1; a <= su.ayahs; a++) h += '<button data-a="' + a + '"' + (n === S.pos.s && a === S.pos.a ? ' class="on"' : '') + '>' + a + '</button>';
-    h += '</div>';
-    sheetB.show('I am learning', esc(su.arabic) + ' · choose the ayah', h, '', '<button class="txtbtn" data-back>Surahs</button>');
-    on(qs('[data-back]', sheetB.right), 'click', function () { showPositionPicker(); });
-    var c = qs('.ayahs .on', sheetB.body);
-    if (c) sheetB.body.scrollTop = Math.max(0, c.offsetTop - sheetB.body.offsetTop - 120);
-    on(sheetB.body, 'click', function (e) {
-      var b = e.target.closest ? e.target.closest('[data-a]') : null; if (!b) return;
-      sheetB.hide(); Memo.setPosition(n, +b.getAttribute('data-a'));
-    });
-  }
+  var myJuz = juzOf(S.pos.s, S.pos.a);
+  sheetB.show('I am learning', 'Surah, then the ayah', '', searchTools('pos', myJuz, 'Surah, number or page'));
+  wireSurahList(sheetB, { id: 'pos', pages: true, scrollTo: '.row.playing',
+    build: function (desc) {
+      return surahListHTML({ desc: desc, juz: myJuz, noCont: true, row: function (n) { return surahRowHTML(n, { cls: n === S.pos.s ? 'playing' : '' }); } });
+    },
+    onPick: function (n) {
+      showAyahGrid(sheetB, 'I am learning', n, S.pos, function (a) { sheetB.hide(); Memo.setPosition(n, a); }, showPositionPicker);
+    } });
 }
 
 /* ============================================================================
@@ -2027,7 +2444,7 @@ var Actions = {
       Deck.show();
     } else showSurahPicker();                          /* nothing was ever played: the picker */
   },
-  reciters: function () { resumeCollection('reciters'); },
+  reciters: function () { resumeReciters(); },
   sharh: function () { resumeCollection('sharh'); },
   hadith: function () { resumeCollection('hadith'); },
   podcasts: function () { resumeCollection('podcasts'); }
@@ -2036,6 +2453,23 @@ var Actions = {
 /* ============================================================================
    boot
    ========================================================================= */
+/* On a laptop: space plays and pauses, the arrows step, Escape closes whatever is on top. */
+on(document, 'keydown', function (e) {
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { if (e.key === 'Escape') t.blur(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey || !D.meta) return;
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    e.preventDefault();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   /* or the focused button fires too */
+    Deck.toggle();
+  } else if (e.key === 'ArrowLeft') { if (Active) Active.prev(); }
+  else if (e.key === 'ArrowRight') { if (Active) Active.next(); }
+  else if (e.key === 'Escape') {
+    if (sheetB.el.classList.contains('show')) sheetB.hide();
+    else if (sheetA.el.classList.contains('show')) sheetA.hide();
+    else if (Deck.open) Deck.hide();
+  }
+});
 function boot() {
   sheetA = new Sheet('sheetA'); sheetB = new Sheet('sheetB');
   Home.init(); Deck.init(); Home.render();
@@ -2043,9 +2477,8 @@ function boot() {
   loadData().then(function () {
     $('boot').classList.add('gone');
     Home.render(); Deck.render(true); DL.init(); MediaSess.init();
-    if (S.memo.source === 'muallim') ensureTimings('muallim').catch(noop);
-    window.MUSHAF = { S: S, D: D, Core: Core, Memo: Memo, Listen: Listen, Deck: Deck, Home: Home, DL: DL,
-      Plan: MushafPlan, audio: audio, actions: Actions, lists: Lists, active: function () { return Active; }, ready: true };
+    window.MUSHAF = { S: S, D: D, Core: Core, Memo: Memo, Listen: Listen, Deck: Deck, Home: Home, DL: DL, Mem: Mem, Rec: Rec,
+      Plan: MushafPlan, audio: audio, actions: Actions, lists: Lists, revisionChoices: revisionChoices, active: function () { return Active; }, ready: true };
     document.documentElement.setAttribute('data-ready', '1');
   }, function (err) {
     $('boot').textContent = 'Could not load the Quran data. Check the connection and open Mushaf again.';

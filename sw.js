@@ -1,11 +1,11 @@
 /* Mushaf service worker: precached app shell + downloaded audio from Cache Storage,
    answered with proper 206 byte ranges (iOS Safari refuses a 200 to a Range request). */
 'use strict';
-var SHELL = 'mushaf-shell-v2';
+var SHELL = 'mushaf-shell-v3';
 var AUDIO = 'mushaf-audio-v1';                 /* must match AUDIO_CACHE in index.html */
 var SHELL_FILES = [
   './', './index.html', './manifest.webmanifest',
-  './quran/meta.json', './quran/words.json', './quran/husary-timings.json', './quran/husary-muallim-timings.json',
+  './quran/meta.json', './quran/words.json', './quran/husary-timings.json',
   './content/reciters.json', './content/sharh.json', './content/hadith.json', './content/podcasts.json',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'
 ];

@@ -1,48 +1,46 @@
 {
   "title": "Recitations",
-  "note": "Favourite reciter x surah pairs. Per-surah MP3s from quranicaudio.com (CORS *, byte ranges). Edit freely.",
-  "items": [
-    {
-      "id": "minshawi-36",
-      "title": "Ya-Sin",
-      "reciter": "Muhammad Siddiq al-Minshawi",
-      "surah": 36,
-      "url": "https://download.quranicaudio.com/quran/muhammad_siddeeq_al-minshaawee/036.mp3"
-    },
-    {
-      "id": "abdulbasit-55",
-      "title": "Ar-Rahman",
-      "reciter": "Abdul Basit (Mujawwad)",
-      "surah": 55,
-      "url": "https://download.quranicaudio.com/quran/abdulbaset_mujawwad/055.mp3"
-    },
-    {
-      "id": "sudais-67",
-      "title": "Al-Mulk",
-      "reciter": "Abdur-Rahman as-Sudais",
-      "surah": 67,
-      "url": "https://download.quranicaudio.com/quran/abdurrahmaan_as-sudays/067.mp3"
-    },
-    {
-      "id": "shatri-18",
-      "title": "Al-Kahf",
-      "reciter": "Abu Bakr al-Shatri",
-      "surah": 18,
-      "url": "https://download.quranicaudio.com/quran/abu_bakr_ash-shaatree/018.mp3"
-    },
-    {
-      "id": "afasy-56",
-      "title": "Al-Waqi'a",
-      "reciter": "Mishari Rashid al-Afasy",
-      "surah": 56,
-      "url": "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/056.mp3"
-    },
-    {
-      "id": "husary-mujawwad-12",
-      "title": "Yusuf",
-      "reciter": "Mahmoud Khalil al-Husary (Mujawwad)",
-      "surah": 12,
-      "url": "https://download.quranicaudio.com/quran/generated/husary_mujawwad/012.mp3"
-    }
-  ]
+  "note": "One entry per surah; a surah may have two reciters and the app lets you choose. Add lines as \"surah number\": [{ reciter, url }]. URLs: per-surah MP3s, e.g. from download.quranicaudio.com (CORS *, byte ranges).",
+  "surahs": {
+    "12": [
+      {
+        "reciter": "Mahmoud Khalil al-Husary (Mujawwad)",
+        "url": "https://download.quranicaudio.com/quran/generated/husary_mujawwad/012.mp3"
+      }
+    ],
+    "18": [
+      {
+        "reciter": "Abu Bakr al-Shatri",
+        "url": "https://download.quranicaudio.com/quran/abu_bakr_ash-shaatree/018.mp3"
+      },
+      {
+        "reciter": "Mishari Rashid al-Afasy",
+        "url": "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/018.mp3"
+      }
+    ],
+    "36": [
+      {
+        "reciter": "Muhammad Siddiq al-Minshawi",
+        "url": "https://download.quranicaudio.com/quran/muhammad_siddeeq_al-minshaawee/036.mp3"
+      }
+    ],
+    "55": [
+      {
+        "reciter": "Abdul Basit (Mujawwad)",
+        "url": "https://download.quranicaudio.com/quran/abdulbaset_mujawwad/055.mp3"
+      }
+    ],
+    "56": [
+      {
+        "reciter": "Mishari Rashid al-Afasy",
+        "url": "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/056.mp3"
+      }
+    ],
+    "67": [
+      {
+        "reciter": "Abdur-Rahman as-Sudais",
+        "url": "https://download.quranicaudio.com/quran/abdurrahmaan_as-sudays/067.mp3"
+      }
+    ]
+  }
 }

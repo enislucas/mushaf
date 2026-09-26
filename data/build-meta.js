@@ -36,7 +36,7 @@ fs.writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify({ surahs, juzStarts
 fs.writeFileSync(path.join(OUT, 'text.json'), JSON.stringify(text));
 
 // ---- timings: compact ints. per surah: {url, d, v:[[from,to,[[w,s,e],...]],...]}
-for (const [name, file] of [['husary', 'husary-timings.json'], ['husary-muallim', 'husary-muallim-timings.json']]) {
+for (const [name, file] of [['husary', 'husary-timings.json']]) {        /* murattal only: the muallim edition was dropped */
   if (!fs.existsSync(path.join(S, file))) { console.log('skip', name); continue; }
   const t = JSON.parse(fs.readFileSync(path.join(S, file)));
   const out = {};

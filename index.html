@@ -202,7 +202,11 @@ svg{display:block}
 /* Select: every word is a target; what is not in the span is dimmed, a first tap is underlined */
 .txt .in.pickable .w{cursor:pointer}
 .txt .in .w.out{opacity:.3}
-.txt .in .w.pick{color:var(--accent);opacity:1;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.4em}
+/* choosing: playback is paused and nothing moves; every word reads at full strength, and the chosen
+   ones sit on an accent band (the space after each word is inside its span, so a run is one band) */
+.txt .in.choosing .w.out{opacity:1}
+.txt .in.choosing .w.on{color:inherit}
+.txt .in .w.ch{color:var(--accent);background:rgba(138,174,255,.16);opacity:1}
 .pbody{flex:1;min-height:0;display:flex;flex-direction:column;
   padding:0 calc(var(--pad) + var(--sar)) calc(10px + var(--sab)) calc(var(--pad) + var(--sal))}
 .view{flex:1;min-height:0;display:flex;flex-direction:column}
@@ -461,13 +465,15 @@ var S = {
   L.tiles = L.tiles.filter(function (id) { if (!KIND[id] || seen[id]) return false; seen[id] = 1; return true; }).slice(0, L.size);
   if (!L.tiles.length) L.tiles = DEFAULT_TILES.slice(0, L.size);
   S.layout = L; LS.set('layout', L);
-  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'ayah', sel: null };
-  /* once: the first version defaulted to Auto; one ayah is the default now */
-  if (m.v !== 2) { m.mode = 'ayah'; m.v = 2; }
+  var m = S.memo, d = { speed: 1, pause: 1, repeat: 0, mode: 'ayah', sel: null };
+  /* once each: the first version defaulted to Auto (one ayah is the default now), and Repeat used to
+     default to 2 (it repeats until he moves on now) */
+  if (m.v !== 2 && m.v !== 3) m.mode = 'ayah';
+  if (m.v !== 3) { m.repeat = 0; m.v = 3; }
   for (var k in d) if (!(k in m)) m[k] = d[k];
   if (SPEEDS_Q.indexOf(m.speed) < 0) m.speed = 1;
   if (PAUSES.indexOf(m.pause) < 0) m.pause = 1;
-  if (REPEATS.indexOf(m.repeat) < 0) m.repeat = 2;
+  if (REPEATS.indexOf(m.repeat) < 0) m.repeat = 0;
   /* Auto is gone, and Words-by-count became Select (he picks the words himself): whatever he was
      using carries over to the nearest thing that still exists */
   if (m.mode === 'words') m.mode = 'select';
@@ -971,8 +977,8 @@ var MediaSess = {
     var ms = navigator.mediaSession, map = {
       play: function () { if (Active) Active.toggle(true); },
       pause: function () { if (Active) Active.toggle(false); },
-      previoustrack: function () { if (Active) Active.prev(); },
-      nexttrack: function () { if (Active) Active.next(); },
+      previoustrack: function () { if (Active) (Active.prevTrack || Active.prev)(); },
+      nexttrack: function () { if (Active) (Active.nextTrack || Active.next)(); },
       seekbackward: function () { if (Active === Listen) Listen.skip(-10); },
       seekforward: function () { if (Active === Listen) Listen.skip(10); }
     };
@@ -1136,18 +1142,23 @@ var Listen = {
     if (!a) { var r = Listen.ranges[Listen.ri]; a = audio.currentTime < Listen.from ? r.a1 : r.a2; }
     return a;
   },
-  prev: function () {
+  /* The arrows seek by time everywhere - 3 s, 10 s on a double tap, a minute a tap in a long run.
+     Stepping a whole ayah was a jump of anything from 5 s to 2 minutes (Al-Baqarah 145 is one). */
+  prev: function () { if (Listen.desc) Seek.tap(-1); },
+  next: function () { if (Listen.desc) Seek.tap(1); },
+  /* the lock screen's previous / next: an ayah at a time for the Quran, 10 s for a file */
+  prevTrack: function () {
     if (!Listen.desc) return;
-    if (Listen.desc.kind !== 'quran') return Seek.tap(-1);
+    if (Listen.desc.kind !== 'quran') return Listen.skip(-10);
     var r = Listen.ranges[Listen.ri], a = Listen.curAyah(), startOfCur = Listen.T.v[a - 1][0] / 1000;
     if (audio.currentTime - startOfCur > 2.5 || (a === r.a1 && Listen.ri === 0)) return Listen.seekAyah(a);
     if (a > r.a1) return Listen.seekAyah(a - 1);
     var pr = Listen.ranges[Listen.ri - 1];
     Listen.playRange(Listen.ri - 1, timings(Listen.desc.source)[String(pr.s)].v[pr.a2 - 1][0] / 1000, Listen.state !== 'pause');
   },
-  next: function () {
+  nextTrack: function () {
     if (!Listen.desc) return;
-    if (Listen.desc.kind !== 'quran') return Seek.tap(1);
+    if (Listen.desc.kind !== 'quran') return Listen.skip(10);
     var r = Listen.ranges[Listen.ri], a = Listen.curAyah();
     if (a < r.a2) return Listen.seekAyah(a + 1);
     if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, Listen.state !== 'pause'); else Listen.finish();
@@ -1159,8 +1170,10 @@ var Listen = {
     if (wasPlaying) Core.play();
   },
   skip: function (d) {
-    var dur = audio.duration;
-    try { audio.currentTime = clamp(audio.currentTime + d, 0, isFinite(dur) ? Math.max(0, dur - 0.5) : 1e9); } catch (e) {}
+    var dur = audio.duration, lo = 0, hi = isFinite(dur) ? Math.max(0, dur - 0.5) : 1e9;
+    /* the Quran: within the surah being played. Running past its end hands over to the next one. */
+    if (Listen.desc && Listen.desc.kind === 'quran') { lo = Listen.from; hi = Listen.to - 0.01; }
+    try { audio.currentTime = clamp(audio.currentTime + d, lo, hi); } catch (e) {}
     if (Listen.state === 'done') Listen.state = 'pause';
     MediaSess.publish(true); Deck.render(true);
   },
@@ -1370,7 +1383,7 @@ var Memo = {
     }
     Deck.render(true);
   },
-  stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; Memo.err = null; },
+  stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; Memo.err = null; if (window.Deck) Deck.cancelChoice(); },
   prev: function () {
     if (!Memo.plan) return;
     var early = Memo.state === 'cue' || (audio.currentTime - Memo.block.from / 1000) < 1.5;
@@ -1391,7 +1404,7 @@ var Memo = {
   },
   setPosition: function (s, a) {
     S.pos = { s: s, a: a }; save('pos');
-    S.memo.sel = null; Deck.pick = null;       /* in Select, a new position starts as its whole ayah */
+    S.memo.sel = null; Deck.cancelChoice();    /* in Select, a new position starts as its whole ayah */
     if (window.Home) Home.refresh();
     Memo.rebuild();
     MediaSess.set('Memorise · ' + surah(s).name, RECITER, 'Mushaf');
@@ -1399,7 +1412,7 @@ var Memo = {
   set: function (k, v) {
     S.memo[k] = v; save('memo');
     if (k === 'speed') { if (Active === Memo) Core.setRate(v); Deck.render(true); return; }
-    if (k === 'mode') { Deck.pick = null; Memo.selHint = v === 'select'; Memo.rebuild(); return; }
+    if (k === 'mode') { Deck.cancelChoice(); Memo.selHint = v === 'select'; Memo.rebuild(); return; }
     Deck.render(true);
   },
   /* The tick beside the position: he says "I have this now". Everything up to the end of the block
@@ -1459,8 +1472,12 @@ var Memo = {
       else if (Memo.state === 'paused') o.status = '<span class="state">Paused</span> · ' + blk + ' · ' + repTxt;
       else o.status = '<span class="state">Listen</span> · ' + blk + ' · ' + repTxt;
       /* choosing words: the one instruction he needs, in place of the status */
-      if (Deck.pick) o.status = '<span class="state">Tap the last word</span>';
-      else if (span && Memo.selHint) o.status = '<span class="state">Tap a first and a last word</span>';
+      var ch = Deck.range();
+      if (ch) {
+        var nw = 0, a; for (a = ch.a1; a <= ch.a2; a++) nw += (a === ch.a2 ? ch.p2 : Memo.W[a - 1].length) - (a === ch.a1 ? ch.p1 : 1) + 1;
+        o.status = Deck.choose.b ? '<span class="state">' + nw + (nw === 1 ? ' word' : ' words') + '</span> · press play'
+                                 : '<span class="state">Tap the last word</span> · or play this one';
+      } else if (span && Memo.selHint) o.status = '<span class="state">Tap the first word</span>';
       o.veil = Memo.state === 'wait';
       o.miniSub = (Memo.state === 'wait' ? 'Recite · ' : '') + su.name + ' · ' + S.pos.s + ':' + b.a1;
     } else { o.status = ''; o.miniSub = su.name + ' · ' + S.pos.s + ':' + S.pos.a; }
@@ -1656,16 +1673,15 @@ function wordsHTML(block) {
   });
   return { html: html, n: n };
 }
-/* Select mode: the ayah before, the chosen ayat and the one after, every word tappable. The chosen
-   words are at full strength, the rest dimmed; the first word of a new choice is underlined. */
-function selectHTML(b, pick) {
+/* Select mode: the ayah before, the chosen ayat and the one after, every word tappable. While it
+   plays, the chosen words are at full strength and the rest dimmed. */
+function selectHTML(b) {
   var W = D.words[String(b.s)], a, p, html = '', n = 0, lo = Math.max(1, b.a1 - 1), hi = Math.min(W.length, b.a2 + 1);
   function k(a, p) { return a * 1000 + p; }
   var k1 = k(b.a1, b.p1), k2 = k(b.a2, b.p2);
   for (a = lo; a <= hi; a++) {
     for (p = 1; p <= W[a - 1].length; p++) {
-      var cls = 'w' + (k(a, p) < k1 || k(a, p) > k2 ? ' out' : '') + (pick && pick.a === a && pick.p === p ? ' pick' : '');
-      html += '<span class="' + cls + '" data-a="' + a + '" data-p="' + p + '">' + esc(W[a - 1][p - 1]) + '</span> '; n++;
+      html += '<span class="w' + (k(a, p) < k1 || k(a, p) > k2 ? ' out' : '') + '" data-a="' + a + '" data-p="' + p + '">' + esc(W[a - 1][p - 1]) + ' </span>'; n++;
     }
     html += '<span class="aend">﴿' + arDigits(a) + '﴾</span> ';
   }
@@ -1720,8 +1736,8 @@ var Deck = {
     on(E.mvPlay, 'click', function () { Deck.toggle(); });
     on(E.lvPrev, 'click', function () { if (Active) Active.prev(); });
     on(E.lvNext, 'click', function () { if (Active) Active.next(); });
-    on(E.mvPrev, 'click', function () { if (Active === Memo) Memo.prev(); });
-    on(E.mvNext, 'click', function () { if (Active === Memo) Memo.next(); });
+    on(E.mvPrev, 'click', function () { Deck.cancelChoice(); if (Active === Memo) Memo.prev(); });
+    on(E.mvNext, 'click', function () { Deck.cancelChoice(); if (Active === Memo) Memo.next(); });
     on(E.lvOptions, 'click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-v]') : null;
       if (b && Active === Listen) Listen.setSpeed(parseFloat(b.getAttribute('data-v')));
@@ -1740,14 +1756,19 @@ var Deck = {
       Deck.pickKey = null; Deck.render(true);
     });
     on(E.mvPos, 'click', function () { showPositionPicker(); });
-    /* Select: tap the first word, then the last - in either order, across ayat if he likes */
+    /* Select: the first tap pauses and marks that word; the next marks the last word, and the band
+       runs between them (either order, across ayat). Another tap starts again from that word; a
+       shift-click on a laptop always moves the last word. Play commits the choice. Nothing is
+       re-rendered or scrolled while choosing, so the word under the finger stays under it. */
     on(E.mvText, 'click', function (e) {
       if (S.memo.mode !== 'select' || Active !== Memo || !Memo.block) return;
       var w = e.target.closest ? e.target.closest('.w[data-a]') : null; if (!w) return;
-      var a = +w.getAttribute('data-a'), p = +w.getAttribute('data-p');
-      if (!Deck.pick) { Deck.pick = { a: a, p: p }; Deck.textKey = null; Deck.render(true); return; }
-      var s0 = Deck.pick; Deck.pick = null; Deck.textKey = null;
-      Memo.setSelection(s0.a, s0.p, a, p);
+      var at = { a: +w.getAttribute('data-a'), p: +w.getAttribute('data-p') }, c = Deck.choose;
+      if (!c) { if (Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue') Memo.toggle(false); Deck.choose = { a: at, b: null }; }
+      else if (e.shiftKey || !c.b) c.b = at;
+      else { c.a = at; c.b = null; }
+      Memo.selHint = false;
+      Deck.paintChoice(); Deck.render(true);
     });
     /* back to the list this came from, without stopping what plays */
     on(E.plList, 'click', function () {
@@ -1781,8 +1802,35 @@ var Deck = {
     on(E.lvProg, 'pointercancel', function () { sc = false; });
   },
   show: function () { Deck.open = true; Deck.el.player.classList.add('show'); Deck.render(true); },
-  hide: function () { Deck.open = false; Deck.pick = null; Deck.textKey = null; Deck.el.player.classList.remove('show'); },
+  hide: function () { Deck.cancelChoice(); Deck.open = false; Deck.el.player.classList.remove('show'); },
+  /* ---- choosing words in Select: { a: first word, b: last word or null } ---- */
+  choose: null,
+  range: function () {
+    var c = Deck.choose; if (!c) return null;
+    var k = function (x) { return x.a * 1000 + x.p; }, e = c.b || c.a;
+    return k(c.a) <= k(e) ? { a1: c.a.a, p1: c.a.p, a2: e.a, p2: e.p } : { a1: e.a, p1: e.p, a2: c.a.a, p2: c.a.p };
+  },
+  /* classes only, in place: no re-render, no scroll */
+  paintChoice: function () {
+    var r = Deck.range(), box = Deck.el.mvText;
+    box.classList.toggle('choosing', !!r);
+    var lo = r ? r.a1 * 1000 + r.p1 : 0, hi = r ? r.a2 * 1000 + r.p2 : -1;
+    qsa('.w[data-a]', box).forEach(function (w) {
+      var k = +w.getAttribute('data-a') * 1000 + +w.getAttribute('data-p');
+      w.classList.toggle('ch', k >= lo && k <= hi);
+    });
+  },
+  commitChoice: function () {
+    var r = Deck.range(); if (!r) return;
+    Deck.choose = null; Deck.el.mvText.classList.remove('choosing');
+    Memo.setSelection(r.a1, r.p1, r.a2, r.p2);
+  },
+  cancelChoice: function () {
+    if (!Deck.choose) return;
+    Deck.choose = null; Deck.paintChoice();
+  },
   toggle: function () {
+    if (Deck.choose && Active === Memo) return Deck.commitChoice();   /* Play plays what he chose */
     if (Active) return Active.toggle();
     if (!S.now || !D.meta) return;
     if (S.now.ctrl === 'memo') { Memo.start(); return; }
@@ -1863,10 +1911,10 @@ var Deck = {
     setText(E.lvT0, fmtTime(info.t0));
     setText(E.lvT1, info.t1 ? '−' + fmtTime(Math.max(0, info.t1 - info.t0)) : '');
     setHTML(E.lvPlay, busy ? ICON.pause : ICON.play);
-    setHTML(E.lvPrev, info.quran ? ICON.prev : Seek.icon(-1));
-    setHTML(E.lvNext, info.quran ? ICON.next : Seek.icon(1));
-    E.lvPrev.setAttribute('aria-label', info.quran ? 'Previous ayah' : 'Back 3 seconds, double tap 10');
-    E.lvNext.setAttribute('aria-label', info.quran ? 'Next ayah' : 'Forward 3 seconds, double tap 10');
+    setHTML(E.lvPrev, Seek.icon(-1));
+    setHTML(E.lvNext, Seek.icon(1));
+    E.lvPrev.setAttribute('aria-label', 'Back 3 seconds, double tap 10');
+    E.lvNext.setAttribute('aria-label', 'Forward 3 seconds, double tap 10');
     var sp = '';
     (info.speeds || SPEEDS_Q).forEach(function (v) { sp += '<button data-v="' + v + '"' + (v === info.speed ? ' class="on"' : '') + '>' + fmtX(v) + '</button>'; });
     setHTML(E.lvOptions, sp);
@@ -1882,18 +1930,20 @@ var Deck = {
     setText(E.mvTitle, info.title);
     setText(E.mvSub, info.sub || '');
     if (b) {
-      var sel = b.kind === 'sel', pk = Deck.pick;
-      var key = (sel ? 'S' + (pk ? pk.a + '.' + pk.p : '') : 'M') + ':' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
+      var sel = b.kind === 'sel';
+      var key = (sel ? 'S' : 'M') + ':' + b.s + ':' + b.a1 + ':' + b.p1 + ':' + b.a2 + ':' + b.p2 + ':' + b.from + ':' + b.to;
       if (Deck.textKey !== key) {
         Deck.textKey = key; Deck.lit = null;
-        var r = sel ? selectHTML(b, pk) : wordsHTML(b);
+        var r = sel ? selectHTML(b) : wordsHTML(b);
         E.mvText.className = 'in' + (r.n > 34 ? ' s2' : '') + (sel ? ' pickable' : '');
         E.mvText.innerHTML = r.html; E.mvTxt.scrollTop = 0;
-        /* the context ayah before can push the chosen words below the fold: bring them up */
+        /* the context ayah before can push the chosen words below the fold: bring them up - but
+           only when a new span arrives, never while he is choosing */
         var first = sel ? qs('.w:not(.out)', E.mvText) : null;
         if (first) E.mvTxt.scrollTop = Math.max(0, first.offsetTop - E.mvText.offsetTop - 12);
+        if (Deck.choose) Deck.paintChoice();
       }
-      Deck.light(E.mvText, E.mvTxt, info.wordAt);
+      if (!Deck.choose) Deck.light(E.mvText, E.mvTxt, info.wordAt);
     } else if (info.resting) {
       var key2 = 'R' + S.pos.s + ':' + S.pos.a;
       if (Deck.textKey !== key2) {
@@ -2521,7 +2571,8 @@ on(document, 'keydown', function (e) {
   } else if (e.key === 'ArrowLeft') { if (Active) Active.prev(); }
   else if (e.key === 'ArrowRight') { if (Active) Active.next(); }
   else if (e.key === 'Escape') {
-    if (sheetB.el.classList.contains('show')) sheetB.hide();
+    if (Deck.choose) { Deck.cancelChoice(); Deck.render(true); }
+    else if (sheetB.el.classList.contains('show')) sheetB.hide();
     else if (sheetA.el.classList.contains('show')) sheetA.hide();
     else if (Deck.open) Deck.hide();
   }

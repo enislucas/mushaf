@@ -195,6 +195,14 @@ svg{display:block}
 .player.show{transform:translateY(0)}
 .grab{flex:none;height:44px;display:flex;align-items:center;justify-content:center;touch-action:none}
 .grab i{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+/* the way back to the list a recitation or lecture came from */
+.plist{position:absolute;z-index:2;top:var(--sat);right:calc(10px + var(--sar));width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.plist svg{width:24px;height:24px}
+.plist:active{color:var(--text)}
+/* Select: every word is a target; what is not in the span is dimmed, a first tap is underlined */
+.txt .in.pickable .w{cursor:pointer}
+.txt .in .w.out{opacity:.3}
+.txt .in .w.pick{color:var(--accent);opacity:1;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.4em}
 .pbody{flex:1;min-height:0;display:flex;flex-direction:column;
   padding:0 calc(var(--pad) + var(--sar)) calc(10px + var(--sab)) calc(var(--pad) + var(--sal))}
 .view{flex:1;min-height:0;display:flex;flex-direction:column}
@@ -338,6 +346,7 @@ svg{display:block}
 
 <div id="player" class="player" aria-label="Player">
   <div class="grab" id="grab" role="button" aria-label="Close player"><i></i></div>
+  <button id="plList" class="plist hide" aria-label="Back to the list"></button>
   <div class="pbody">
 
     <section id="lv" class="view hide">
@@ -424,9 +433,8 @@ var TILE_ORDER = KINDS.map(function (k) { return k.id; });
 var DEFAULT_TILES = ['memorize', 'revise', 'husary', 'reciters', 'sharh', 'hadith'];
 var SPEEDS_Q = [0.5, 0.75, 1, 1.25], SPEEDS_L = [0.75, 1, 1.25, 1.5];
 var PAUSES = [0.75, 1, 1.25, 1.5], REPEATS = [1, 2, 3, 0];      /* 0 = infinite */
-var MODES = ['ayah', '2', '3', 'words', 'auto'];
-var MODE_LABEL = { ayah: 'Ayah', '2': '2 ayat', '3': '3 ayat', words: 'Words', auto: 'Auto' };
-var WORD_COUNTS = [3, 4, 5, 6, 7, 8];            /* words per block in Words mode */
+var MODES = ['ayah', '2', '3', 'select'];
+var MODE_LABEL = { ayah: 'Ayah', '2': '2 ayat', '3': '3 ayat', select: 'Select' };
 var RECITER = 'Mahmoud Khalil al-Husary';
 var SORT_DEFAULT = { husary: 'asc', pos: 'desc', mem: 'desc', add: 'asc', rec: 'asc' };
 
@@ -453,16 +461,18 @@ var S = {
   L.tiles = L.tiles.filter(function (id) { if (!KIND[id] || seen[id]) return false; seen[id] = 1; return true; }).slice(0, L.size);
   if (!L.tiles.length) L.tiles = DEFAULT_TILES.slice(0, L.size);
   S.layout = L; LS.set('layout', L);
-  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'ayah', words: 5 };
+  var m = S.memo, d = { speed: 1, pause: 1, repeat: 2, mode: 'ayah', sel: null };
   /* once: the first version defaulted to Auto; one ayah is the default now */
   if (m.v !== 2) { m.mode = 'ayah'; m.v = 2; }
   for (var k in d) if (!(k in m)) m[k] = d[k];
   if (SPEEDS_Q.indexOf(m.speed) < 0) m.speed = 1;
   if (PAUSES.indexOf(m.pause) < 0) m.pause = 1;
   if (REPEATS.indexOf(m.repeat) < 0) m.repeat = 2;
+  /* Auto is gone, and Words-by-count became Select (he picks the words himself): whatever he was
+     using carries over to the nearest thing that still exists */
+  if (m.mode === 'words') m.mode = 'select';
   if (MODES.indexOf(m.mode) < 0) m.mode = 'ayah';
-  if (WORD_COUNTS.indexOf(m.words) < 0) m.words = 5;
-  delete m.text; delete m.source;             /* Husary murattal only: the source setting is gone */
+  delete m.text; delete m.source; delete m.words;
   save('memo');
   for (var sk in SORT_DEFAULT) if (S.ui[sk] !== 'asc' && S.ui[sk] !== 'desc') S.ui[sk] = SORT_DEFAULT[sk];
   if (SPEEDS_Q.indexOf(S.listen.q) < 0) S.listen.q = 1;
@@ -607,16 +617,13 @@ var ICON = {
   pause24: '<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M10 6h3.6v20H10zM18.4 6H22v20h-3.6z" fill="currentColor"/></svg>',
   prev: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M9 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M23 7.5 11.5 16 23 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   next: '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M23 7v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M9 7.5 20.5 16 9 24.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
-  /* a plain arrow beside a real 15px numeral: a "15" drawn inside the SVG came out at 9px, which is
-     under the floor and unreadable at arm's length */
-  back15: '<span class="skip"><svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="n15 num">15</b></span>',
-  fwd15: '<span class="skip"><svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="n15 num">15</b></span>',
   chev: '<svg viewBox="0 0 11 19" width="9" height="16" aria-hidden="true"><path d="M1.5 1.5 9.5 9.5l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   minus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.5 12h9M12 7.5v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   handle: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>',
   /* order: an arrow and three bars that lengthen along it; flipped (CSS) when the list runs backwards */
   sort: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 4v15.5M2.8 16.3 6 19.5l3.2-3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 6h4M12.5 12h6.5M12.5 18h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  list: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4.6" cy="6.5" r="1.2" fill="currentColor"/><circle cx="4.6" cy="12" r="1.2" fill="currentColor"/><circle cx="4.6" cy="17.5" r="1.2" fill="currentColor"/></svg>',
   check: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.6 12.3l3 3 5.8-6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
@@ -625,33 +632,28 @@ var ICON = {
    Block planning. Pure functions, no DOM; extracted verbatim by the test harness.
    Inputs: T = timings entry for one surah { url, d, v:[[fromMs,toMs,[[pos,startMs,endMs],..]],..] }
            W = words for that surah [[word,..],..]  (segment positions are 1-based into these)
-   Output: blocks { s, a1, a2, from, to, dur, kind, spans:[{a,p1,p2}], k, n }
+   Output: blocks { s, a1, a2, from, to, dur, kind, spans:[{a,p1,p2} | {a,ps}], k, n }
 
-   units() is candidate c's: it merges the segments of a word the data split in two,
-   clamps the muallim file's overruns to the ayah, and makes the units tile the ayah
-   exactly — so every cut is a real word boundary and no audio is skipped or replayed.
-   The partition itself is candidate b's exact dynamic programme, run over those unit
-   boundaries instead of over raw segments.
+   Two kinds of block: whole ayat (one, two or three), and a span he picks by hand — from any
+   word of one ayah to any word of the same or a later ayah.
    ========================================================================= */
 var MushafPlan = (function () {
   var MARK = /[ۖ-ۜ۞۩]/;                                 /* pause marks, attached to the word they follow */
-  var AUTO = { splitAbove: 16000, part: 11000, minPart: 4000, mergeWhileUnder: 8000, mergedMax: 14000, mergeCandidateMax: 16000, hardMax: 18000 };
-  var WORDS = { perBlock: 5.5, single: 7, lo: 4, hi: 7, markBonus: 1.5 };
 
   function ayahDur(v, i) { return (v[i][1] - v[i][0]) / 1000; }
 
-  /* Time-ordered word units of one ayah (candidate c, verbatim in behaviour). */
+  /* Time-ordered word units of one ayah: the segments in the order they are heard, a word the data
+     split in two merged back into one, clamped to the ayah, tiling it exactly. */
   function units(ayah, words) {
     var nw = words.length, segs = ayah[2].slice().sort(function (a, b) { return a[1] - b[1]; });
     var out = [], i, p, last, st, en;
     for (i = 0; i < segs.length; i++) {
-      /* the muallim file has segments running past their ayah's end: clamp, drop what falls outside */
       st = Math.max(segs[i][1], ayah[0]); en = Math.min(segs[i][2], ayah[1]);
       if (en <= st) continue;
       p = segs[i][0]; if (p > nw) p = nw; if (p < 1) p = 1;
       last = out[out.length - 1];
       /* the same position twice in a row is one word split in two, unless the union is longer than
-         any word can be (then it is the teacher repeating, and stays its own unit) */
+         any word can be (then it is the reciter repeating, and stays its own unit) */
       if (last && last.p === p && en - last.start <= 12000) { last.end = Math.max(last.end, en); continue; }
       out.push({ p: p, start: st, end: en });
     }
@@ -666,87 +668,6 @@ var MushafPlan = (function () {
     return out;
   }
 
-  /* Display spans: one block per run of units. A block shows exactly the word positions its own
-     units sound — in position order, each position once, however many units carry it (a word the
-     data split in two, or a phrase the reciter repeats). Nothing outside the block is shown, so
-     consecutive blocks no longer share words, and no word is displayed before it is heard. */
-  function runsToBlocks(s, a, us, cuts, nw) {
-    var blocks = [], i, j, p, run, k;
-    for (i = 0; i < cuts.length - 1; i++) {
-      run = us.slice(cuts[i], cuts[i + 1]);
-      var seen = {}, ps = [];
-      for (j = 0; j < run.length; j++) if (!seen[run[j].p]) { seen[run[j].p] = 1; ps.push(run[j].p); }
-      ps.sort(function (x, y) { return x - y; });
-      blocks.push({ s: s, a1: a, a2: a, from: run[0].start, to: run[run.length - 1].end, kind: 'words', ps: ps, units: run.length });
-    }
-    function blockOf(q) { for (var x = 0; x < blocks.length; x++) if (blocks[x].ps.indexOf(q) >= 0) return x; return -1; }
-    /* A handful of words have no segment of their own. units() gives their time to the word before
-       them, so they really are sounded inside that word's block and belong on its screen — without
-       them a word would be recited that no block ever shows. */
-    var have = {};
-    for (i = 0; i < us.length; i++) have[us[i].p] = 1;
-    for (p = 1; p <= nw; p++) {
-      if (have[p]) continue;
-      k = -1;
-      for (j = p - 1; j >= 1 && k < 0; j--) k = blockOf(j);
-      if (k < 0) k = 0;
-      var into = blocks[k].ps, at = into.length;
-      for (i = 0; i < into.length; i++) if (into[i] > p) { at = i; break; }
-      into.splice(at, 0, p);
-    }
-    for (k = 0; k < blocks.length; k++) {
-      var b = blocks[k];
-      b.dur = (b.to - b.from) / 1000; b.spans = [{ a: a, ps: b.ps }];
-      delete b.ps;
-    }
-    return blocks;
-  }
-
-  /* Exact dynamic programme over the unit boundaries (candidate b's bestSplit, re-based on units).
-     cost(durationMs, unitCount, endsOnMark, isLast) -> number. Returns the chosen cut indices. */
-  function bestCuts(us, cost) {
-    var n = us.length, best = new Array(n + 1), prev = new Array(n + 1), i, j;
-    for (j = 0; j <= n; j++) { best[j] = Infinity; prev[j] = -1; }
-    best[0] = 0;
-    for (j = 1; j <= n; j++) {
-      for (i = 0; i < j; i++) {
-        if (best[i] === Infinity) continue;
-        var d = (us[j - 1].end - us[i].start), c = best[i] + cost(d, j - i, us[j - 1].mark, j === n);
-        if (c < best[j]) { best[j] = c; prev[j] = i; }
-      }
-    }
-    var cuts = [n];
-    for (j = prev[n]; j > 0; j = prev[j]) cuts.unshift(j);
-    cuts.unshift(0);
-    return cuts;
-  }
-  /* Auto: aim at 11 s. Under 4 s is heavily penalised; over 18 s is forbidden outright unless the
-     block is a single unit, which cannot be divided any further. */
-  function autoCost(d, n, mark, last) {
-    if (d > AUTO.hardMax) return (n <= 1 ? 5000 : 1e7) + d / 100;
-    if (d < AUTO.minPart) return 1000 + (AUTO.minPart - d) / 100;
-    var x = (d - AUTO.part) / 1000;
-    return x * x + (n < 3 ? 20 : 0) - (mark ? 2 : 0);
-  }
-  /* Words: he chooses how many words a block holds (3–8). The programme aims at exactly that many,
-     allows one fewer or one more so a cut can land on a pause mark, and never leaves a lone word. */
-  function wordsCostFor(N) {
-    var lo = Math.max(2, N - 1), hi = N + 1;
-    return function (d, n, mark, last) {
-      if (n < 2) return 1e7;
-      var x = n - N, c = x * x - (mark ? WORDS.markBonus : 0);
-      if (n < lo || n > hi) c += 1e4;
-      return c;
-    };
-  }
-  var wordsCost = wordsCostFor(WORDS.perBlock);
-
-  function splitAyah(s, a, ayah, words, cost) {
-    var us = units(ayah, words);
-    if (us.length < 2) return [{ s: s, a1: a, a2: a, from: ayah[0], to: ayah[1], dur: (ayah[1] - ayah[0]) / 1000, kind: 'words', spans: [{ a: a, p1: 1, p2: words.length }], units: us.length }];
-    return runsToBlocks(s, a, us, bestCuts(us, cost), words.length);
-  }
-
   function ayahBlock(s, v, i, W) {
     return { s: s, a1: i + 1, a2: i + 1, from: v[i][0], to: v[i][1], dur: ayahDur(v, i), kind: 'ayah', spans: [{ a: i + 1, p1: 1, p2: W[i].length }] };
   }
@@ -757,45 +678,71 @@ var MushafPlan = (function () {
     return b;
   }
 
-  /* mode: 'ayah' | '2' | '3' | 'words' | 'auto'. Always plans a whole surah, so "block k of n"
-     counts within the surah and does not shrink when the position moves.
-     opts.words: words per block in Words mode (an ayah no longer than that plus one stays whole). */
-  function planBlocks(s, T, W, mode, opts) {
-    var v = T.v, nA = v.length, out = [], i, j, d, g;
-    if (mode === '2' || mode === '3') {
-      g = mode === '2' ? 2 : 3;
-      for (i = 0; i < nA; i += g) out.push(merge(s, v, i, Math.min(i + g - 1, nA - 1), W));
-    } else if (mode === 'words') {
-      var N = (opts && opts.words) || WORDS.perBlock, cost = wordsCostFor(N);
-      for (i = 0; i < nA; i++) {
-        if (units(v[i], W[i]).length <= N + 1) out.push(ayahBlock(s, v, i, W));
-        else out = out.concat(splitAyah(s, i + 1, v[i], W[i], cost));
-      }
-    } else if (mode === 'auto') {
-      i = 0;
-      while (i < nA) {
-        d = ayahDur(v, i) * 1000;
-        if (d > AUTO.splitAbove) { out = out.concat(splitAyah(s, i + 1, v[i], W[i], autoCost)); i++; continue; }
-        j = i;
-        /* merge consecutive short ayat while the block stays under 8 s (candidate b's rule) */
-        while (j + 1 < nA && ayahDur(v, j + 1) * 1000 <= AUTO.mergeCandidateMax && d < AUTO.mergeWhileUnder && d + ayahDur(v, j + 1) * 1000 <= AUTO.mergedMax) { d += ayahDur(v, j + 1) * 1000; j++; }
-        if (d < AUTO.minPart && j + 1 < nA && ayahDur(v, j + 1) * 1000 <= AUTO.mergeCandidateMax && d + ayahDur(v, j + 1) * 1000 <= AUTO.hardMax) { d += ayahDur(v, j + 1) * 1000; j++; }
-        out.push(j === i ? ayahBlock(s, v, i, W) : merge(s, v, i, j, W));
-        i = j + 1;
-      }
-    } else {
-      for (i = 0; i < nA; i++) out.push(ayahBlock(s, v, i, W));
-    }
+  /* mode: 'ayah' | '2' | '3'. Always plans a whole surah, so "block k of n" counts within the
+     surah and does not shrink when the position moves. */
+  function planBlocks(s, T, W, mode) {
+    var v = T.v, nA = v.length, out = [], i, g = mode === '2' ? 2 : mode === '3' ? 3 : 1;
+    for (i = 0; i < nA; i += g) out.push(g === 1 ? ayahBlock(s, v, i, W) : merge(s, v, i, Math.min(i + g - 1, nA - 1), W));
     for (i = 0; i < out.length; i++) { out[i].k = i + 1; out[i].n = out.length; }
     return out;
   }
 
-  /* Index of the block that holds ayah a (the first block of that ayah). */
+  /* Index of the block that holds ayah a. */
   function blockIndexFor(blocks, a) {
     var i;
     for (i = 0; i < blocks.length; i++) if (a >= blocks[i].a1 && a <= blocks[i].a2) return i;
     for (i = 0; i < blocks.length; i++) if (blocks[i].a1 >= a) return i;
     return Math.max(0, blocks.length - 1);
+  }
+
+  /* ---- a span he picks by hand ------------------------------------------------------------
+     sel = { a1, p1, a2, p2 }: word p1 of ayah a1 up to and including word p2 of ayah a2.
+     It starts the first time the reciter says word p1, and stops just before he first says a word
+     after p2 — so where he goes back over a phrase inside the span, that is kept exactly as he
+     recites it, and nothing past the last chosen word is heard. */
+  function clampSel(W, sel) {
+    var n = W.length, a1 = Math.min(Math.max(1, sel.a1 | 0), n), a2 = Math.min(Math.max(1, sel.a2 | 0), n);
+    var p1 = Math.min(Math.max(1, sel.p1 | 0), W[a1 - 1].length), p2 = Math.min(Math.max(1, sel.p2 | 0), W[a2 - 1].length);
+    if (a2 < a1 || (a2 === a1 && p2 < p1)) { var t = a1; a1 = a2; a2 = t; t = p1; p1 = p2; p2 = t; }
+    return { a1: a1, p1: p1, a2: a2, p2: p2 };
+  }
+  function selection(s, T, W, sel) {
+    sel = clampSel(W, sel);
+    var v = T.v, a1 = sel.a1, p1 = sel.p1, a2 = sel.a2, p2 = sel.p2, i, u;
+    var from = v[a1 - 1][0], to = v[a2 - 1][1];
+    if (p1 > 1) {
+      u = units(v[a1 - 1], W[a1 - 1]);
+      for (i = 0; i < u.length; i++) if (u[i].p >= p1) { from = u[i].start; break; }
+      /* a few closing words have no timing of their own (13:18 stops at word 25 of 27): they are
+         said at the tail, inside the last timed unit, so a span starting on one starts there */
+      if (i === u.length) from = u[u.length - 1].start;
+    }
+    if (p2 < W[a2 - 1].length) {
+      u = units(v[a2 - 1], W[a2 - 1]);
+      var after = a2 === a1 ? from : v[a2 - 1][0];
+      for (i = 0; i < u.length; i++) if (u[i].p > p2 && u[i].start > after) { to = u[i].start; break; }
+    }
+    var spans = [], a, p, ps, words = 0;
+    for (a = a1; a <= a2; a++) {
+      ps = [];
+      for (p = (a === a1 ? p1 : 1); p <= (a === a2 ? p2 : W[a - 1].length); p++) ps.push(p);
+      spans.push({ a: a, ps: ps }); words += ps.length;
+    }
+    return { s: s, a1: a1, a2: a2, p1: p1, p2: p2, from: from, to: to, dur: (to - from) / 1000, kind: 'sel', spans: spans, words: words, k: 1, n: 1 };
+  }
+  /* The next (dir +1) or previous (dir -1) span of the same number of words, running on across
+     ayat, never past either end of the surah. null when there is nothing further that way. */
+  function stepSel(W, sel, dir) {
+    sel = clampSel(W, sel);
+    var n = 0, a, p;
+    for (a = sel.a1; a <= sel.a2; a++) n += (a === sel.a2 ? sel.p2 : W[a - 1].length) - (a === sel.a1 ? sel.p1 : 1) + 1;
+    function fwd(x) { if (x.p < W[x.a - 1].length) return { a: x.a, p: x.p + 1 }; return x.a < W.length ? { a: x.a + 1, p: 1 } : null; }
+    function back(x) { if (x.p > 1) return { a: x.a, p: x.p - 1 }; return x.a > 1 ? { a: x.a - 1, p: W[x.a - 2].length } : null; }
+    var start = dir > 0 ? fwd({ a: sel.a2, p: sel.p2 }) : back({ a: sel.a1, p: sel.p1 });
+    if (!start) return null;
+    var end = start, k, nx;
+    for (k = 1; k < n; k++) { nx = dir > 0 ? fwd(end) : back(end); if (!nx) break; end = nx; }
+    return dir > 0 ? { a1: start.a, p1: start.p, a2: end.a, p2: end.p } : { a1: end.a, p1: end.p, a2: start.a, p2: start.p };
   }
 
   /* Word sounding in ayah a at ms: {a, p} or null. Raw segments, so a repeated phrase
@@ -815,7 +762,8 @@ var MushafPlan = (function () {
     while (lo <= hi) { m = (lo + hi) >> 1; if (ms < v[m][0]) hi = m - 1; else if (ms >= v[m][1]) lo = m + 1; else return m + 1; }
     return 0;
   }
-  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, wordAt: wordAt, ayahAt: ayahAt, units: units, bestCuts: bestCuts, autoCost: autoCost, wordsCost: wordsCost, wordsCostFor: wordsCostFor, AUTO: AUTO, WORDS: WORDS, MARK: MARK };
+  return { planBlocks: planBlocks, blockIndexFor: blockIndexFor, selection: selection, stepSel: stepSel, clampSel: clampSel,
+           wordAt: wordAt, ayahAt: ayahAt, units: units, MARK: MARK };
 })();
 /* @@PLAN-END */
 
@@ -1025,8 +973,8 @@ var MediaSess = {
       pause: function () { if (Active) Active.toggle(false); },
       previoustrack: function () { if (Active) Active.prev(); },
       nexttrack: function () { if (Active) Active.next(); },
-      seekbackward: function () { if (Active === Listen) Listen.skip(-15); },
-      seekforward: function () { if (Active === Listen) Listen.skip(15); }
+      seekbackward: function () { if (Active === Listen) Listen.skip(-10); },
+      seekforward: function () { if (Active === Listen) Listen.skip(10); }
     };
     for (var k in map) { try { ms.setActionHandler(k, map[k]); } catch (e) {} }
   },
@@ -1190,7 +1138,7 @@ var Listen = {
   },
   prev: function () {
     if (!Listen.desc) return;
-    if (Listen.desc.kind !== 'quran') return Listen.skip(-15);
+    if (Listen.desc.kind !== 'quran') return Seek.tap(-1);
     var r = Listen.ranges[Listen.ri], a = Listen.curAyah(), startOfCur = Listen.T.v[a - 1][0] / 1000;
     if (audio.currentTime - startOfCur > 2.5 || (a === r.a1 && Listen.ri === 0)) return Listen.seekAyah(a);
     if (a > r.a1) return Listen.seekAyah(a - 1);
@@ -1199,7 +1147,7 @@ var Listen = {
   },
   next: function () {
     if (!Listen.desc) return;
-    if (Listen.desc.kind !== 'quran') return Listen.skip(15);
+    if (Listen.desc.kind !== 'quran') return Seek.tap(1);
     var r = Listen.ranges[Listen.ri], a = Listen.curAyah();
     if (a < r.a2) return Listen.seekAyah(a + 1);
     if (Listen.ri + 1 < Listen.ranges.length) Listen.playRange(Listen.ri + 1, null, Listen.state !== 'pause'); else Listen.finish();
@@ -1279,9 +1227,40 @@ var Memo = {
   },
   buildPlan: function () {
     Memo.T = timings()[String(S.pos.s)]; Memo.W = D.words[String(S.pos.s)];
-    Memo.plan = MushafPlan.planBlocks(S.pos.s, Memo.T, Memo.W, S.memo.mode, { words: S.memo.words });
-    Memo.planKey = S.pos.s + '/' + S.memo.mode + '/' + S.memo.words;
-    Memo.bi = MushafPlan.blockIndexFor(Memo.plan, S.pos.a);
+    if (S.memo.mode === 'select') {
+      /* the span he picked, if it belongs here; otherwise the whole ayah he is on, to pick from */
+      var sel = S.memo.sel;
+      if (!sel || sel.s !== S.pos.s || S.pos.a < sel.a1 || S.pos.a > sel.a2) sel = { a1: S.pos.a, p1: 1, a2: S.pos.a, p2: Memo.W[S.pos.a - 1].length };
+      sel = MushafPlan.clampSel(Memo.W, sel); sel.s = S.pos.s;
+      S.memo.sel = sel; save('memo');
+      Memo.plan = [MushafPlan.selection(S.pos.s, Memo.T, Memo.W, sel)];
+      Memo.bi = 0;
+    } else {
+      Memo.plan = MushafPlan.planBlocks(S.pos.s, Memo.T, Memo.W, S.memo.mode);
+      Memo.bi = MushafPlan.blockIndexFor(Memo.plan, S.pos.a);
+    }
+    Memo.planKey = S.pos.s + '/' + S.memo.mode;
+  },
+  /* Select: move on (dir 1) or back (dir -1) by a span of the same number of words */
+  stepSel: function (dir) {
+    var nx = MushafPlan.stepSel(Memo.W, S.memo.sel, dir);
+    if (!nx) return false;
+    nx.s = S.pos.s; S.memo.sel = nx; save('memo');
+    S.pos = { s: S.pos.s, a: nx.a1 }; save('pos');
+    Memo.plan = [MushafPlan.selection(S.pos.s, Memo.T, Memo.W, nx)]; Memo.bi = 0;
+    if (window.Home) Home.refresh();
+    return true;
+  },
+  /* He tapped a first and a last word: that span is the block now, and it plays at once. */
+  setSelection: function (a1, p1, a2, p2) {
+    var W = D.words[String(S.pos.s)], sel = MushafPlan.clampSel(W, { a1: a1, p1: p1, a2: a2, p2: p2 });
+    sel.s = S.pos.s;
+    S.memo.sel = sel; S.memo.mode = 'select'; save('memo');
+    S.pos = { s: S.pos.s, a: sel.a1 }; save('pos');
+    Memo.selHint = false;
+    if (Active !== Memo) { if (Active === Listen) Listen.stop(); Active = Memo; S.now = { ctrl: 'memo' }; save('now'); }
+    Memo.buildPlan(); Memo.rep = 0; Memo.begin(true);
+    if (window.Home) Home.refresh();
   },
   begin: function (autoplay) {
     var b = Memo.plan[Memo.bi]; Memo.block = b;
@@ -1353,8 +1332,9 @@ var Memo = {
     Core.advancing = performance.now();
     Memo.rep++;
     if (S.memo.repeat !== 0 && Memo.rep >= S.memo.repeat) {
-      Memo.rep = 0; Memo.bi++;
-      if (Memo.bi >= Memo.plan.length && !Memo.nextSurah()) {
+      Memo.rep = 0;
+      var more = S.memo.mode === 'select' ? Memo.stepSel(1) : (++Memo.bi < Memo.plan.length);
+      if (!more && !Memo.nextSurah()) {
         Memo.bi = Memo.plan.length - 1; Memo.state = 'done'; Memo.lastFrac = 0; MediaSess.state(false); Deck.render(true); return;
       }
     }
@@ -1363,6 +1343,7 @@ var Memo = {
   nextSurah: function () {                   /* he memorises from the back: after surah n comes n-1 */
     var s = S.pos.s - 1; if (s < 1) return false;
     S.pos = { s: s, a: 1 }; save('pos');
+    S.memo.sel = null;                       /* a new surah starts from its first whole ayah */
     Memo.buildPlan(); Memo.bi = 0;
     MediaSess.set('Memorise · ' + surah(s).name, RECITER, 'Mushaf');
     if (window.Home) Home.refresh();
@@ -1392,15 +1373,17 @@ var Memo = {
   stop: function () { Core.pause(); Core.disarm(); Memo.state = 'idle'; Memo.err = null; },
   prev: function () {
     if (!Memo.plan) return;
-    if (Memo.bi > 0 && (Memo.state === 'cue' || (audio.currentTime - Memo.block.from / 1000) < 1.5)) Memo.bi--;
+    var early = Memo.state === 'cue' || (audio.currentTime - Memo.block.from / 1000) < 1.5;
+    if (S.memo.mode === 'select') { if (early) Memo.stepSel(-1); }
+    else if (Memo.bi > 0 && early) Memo.bi--;
     Memo.rep = 0; Memo.begin(true);
   },
   next: function () {
     if (!Memo.plan) return;
-    if (Memo.bi + 1 < Memo.plan.length) { Memo.bi++; Memo.rep = 0; Memo.begin(true); }
+    if (S.memo.mode === 'select' ? Memo.stepSel(1) : (Memo.bi + 1 < Memo.plan.length && ++Memo.bi)) { Memo.rep = 0; Memo.begin(true); }
     else if (Memo.nextSurah()) { Memo.rep = 0; Memo.begin(true); }
   },
-  rebuild: function () {                     /* block mode, word count or position changed */
+  rebuild: function () {                     /* block mode or position changed */
     var running = Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue';
     Memo.buildPlan(); Memo.rep = 0;
     if (Active === Memo && running) Memo.begin(true);
@@ -1408,6 +1391,7 @@ var Memo = {
   },
   setPosition: function (s, a) {
     S.pos = { s: s, a: a }; save('pos');
+    S.memo.sel = null; Deck.pick = null;       /* in Select, a new position starts as its whole ayah */
     if (window.Home) Home.refresh();
     Memo.rebuild();
     MediaSess.set('Memorise · ' + surah(s).name, RECITER, 'Mushaf');
@@ -1415,7 +1399,7 @@ var Memo = {
   set: function (k, v) {
     S.memo[k] = v; save('memo');
     if (k === 'speed') { if (Active === Memo) Core.setRate(v); Deck.render(true); return; }
-    if (k === 'mode' || k === 'words') { Memo.rebuild(); return; }
+    if (k === 'mode') { Deck.pick = null; Memo.selHint = v === 'select'; Memo.rebuild(); return; }
     Deck.render(true);
   },
   /* The tick beside the position: he says "I have this now". Everything up to the end of the block
@@ -1423,8 +1407,11 @@ var Memo = {
      moves on to the next ayah in his direction. It only ever EXTENDS what is memorised: a tap while
      he is going back over an older ayah must not shrink months of work to that ayah. */
   markMemorised: function () {
-    var b = Memo.block && Memo.block.s === S.pos.s ? Memo.block : null;
-    var upto = { s: S.pos.s, a: b ? b.a2 : S.pos.a };
+    var b = Memo.block && Memo.block.s === S.pos.s ? Memo.block : null, a = b ? b.a2 : S.pos.a;
+    /* a span that stops inside an ayah has not finished it: only the ayat before count */
+    if (b && b.kind === 'sel' && b.p2 < D.words[String(b.s)][b.a2 - 1].length) a = b.a2 - 1;
+    if (a < 1 || (b && a < b.a1)) { toast('Mark it once the whole ayah is done'); return; }
+    var upto = { s: S.pos.s, a: a };
     if (!Mem.extend(upto)) { toast('Already memorised — ' + surah(upto.s).name + ' ' + upto.a); return; }
     var nx = Mem.next();
     toast('Memorised to ' + surah(upto.s).name + ' ' + upto.a + (nx ? ' · next ' + nx.s + ':' + nx.a : ''));
@@ -1456,18 +1443,24 @@ var Memo = {
     var o = { ctrl: 'memo', state: Memo.state, block: b, frac: Memo.frac(now, t),
       running: Memo.state === 'play' || Memo.state === 'wait' || Memo.state === 'cue', wait: Memo.state === 'wait' };
     o.title = su.name; o.arTitle = su.arabic;
-    o.where = b ? (b.a1 === b.a2 ? 'Ayah ' + b.a1 : 'Ayat ' + b.a1 + '–' + b.a2) : 'Ayah ' + S.pos.a;
-    o.sub = o.where + ' of ' + su.ayahs + ' · Page ' + pageOf(S.pos.s, S.pos.a) + ' · Juz ' + juzOf(S.pos.s, S.pos.a);
+    var span = b && b.kind === 'sel', whole = span && b.p1 === 1 && b.p2 === Memo.W[b.a2 - 1].length;
+    o.where = !b ? 'Ayah ' + S.pos.a
+      : span ? (b.a1 === b.a2 ? 'Ayah ' + b.a1 + (whole ? '' : ' · words ' + b.p1 + '–' + b.p2) : 'Ayat ' + b.a1 + '–' + b.a2 + ' · ' + b.words + ' words')
+      : (b.a1 === b.a2 ? 'Ayah ' + b.a1 : 'Ayat ' + b.a1 + '–' + b.a2);
+    o.sub = o.where + (span ? '' : ' of ' + su.ayahs) + ' · Page ' + pageOf(S.pos.s, S.pos.a) + ' · Juz ' + juzOf(S.pos.s, S.pos.a);
     if (b) {
       var a = (Memo.state === 'play' || Memo.state === 'cue') ? MushafPlan.ayahAt(Memo.T, t * 1000) : 0;
       o.wordAt = a >= b.a1 && a <= b.a2 ? MushafPlan.wordAt(Memo.T, Memo.W, a, t * 1000) : null;
       var repTxt = S.memo.repeat === 0 ? 'Repeat ' + (Memo.rep + 1) : 'Repeat ' + (Memo.rep + 1) + ' of ' + S.memo.repeat;
-      var blk = 'Block ' + b.k + ' of ' + b.n;
+      var blk = span ? b.words + (b.words === 1 ? ' word' : ' words') : 'Block ' + b.k + ' of ' + b.n;
       if (Memo.state === 'wait') o.status = '<span class="state">Recite</span> · ' + Math.ceil((Memo.waitEnd - now) / 1000) + ' s · ' + blk + ' · ' + repTxt;
       else if (Memo.state === 'done') o.status = '<span class="state">Done</span> · ' + blk;
       else if (Memo.err) o.status = '<span class="state">Paused</span> · ' + esc(Memo.err);
       else if (Memo.state === 'paused') o.status = '<span class="state">Paused</span> · ' + blk + ' · ' + repTxt;
       else o.status = '<span class="state">Listen</span> · ' + blk + ' · ' + repTxt;
+      /* choosing words: the one instruction he needs, in place of the status */
+      if (Deck.pick) o.status = '<span class="state">Tap the last word</span>';
+      else if (span && Memo.selHint) o.status = '<span class="state">Tap a first and a last word</span>';
       o.veil = Memo.state === 'wait';
       o.miniSub = (Memo.state === 'wait' ? 'Recite · ' : '') + su.name + ' · ' + S.pos.s + ':' + b.a1;
     } else { o.status = ''; o.miniSub = su.name + ' · ' + S.pos.s + ':' + S.pos.a; }
@@ -1663,13 +1656,54 @@ function wordsHTML(block) {
   });
   return { html: html, n: n };
 }
+/* Select mode: the ayah before, the chosen ayat and the one after, every word tappable. The chosen
+   words are at full strength, the rest dimmed; the first word of a new choice is underlined. */
+function selectHTML(b, pick) {
+  var W = D.words[String(b.s)], a, p, html = '', n = 0, lo = Math.max(1, b.a1 - 1), hi = Math.min(W.length, b.a2 + 1);
+  function k(a, p) { return a * 1000 + p; }
+  var k1 = k(b.a1, b.p1), k2 = k(b.a2, b.p2);
+  for (a = lo; a <= hi; a++) {
+    for (p = 1; p <= W[a - 1].length; p++) {
+      var cls = 'w' + (k(a, p) < k1 || k(a, p) > k2 ? ' out' : '') + (pick && pick.a === a && pick.p === p ? ' pick' : '');
+      html += '<span class="' + cls + '" data-a="' + a + '" data-p="' + p + '">' + esc(W[a - 1][p - 1]) + '</span> '; n++;
+    }
+    html += '<span class="aend">﴿' + arDigits(a) + '﴾</span> ';
+  }
+  return { html: html, n: n };
+}
+/* Recitations and lectures: one tap 3 s, a double tap 10 s, and a run of taps keeps going — 10 s a
+   tap up to the fifth, then a minute a tap. The numeral beside the arrow shows how far this run has
+   gone, and falls back to 3 a moment after the last tap. */
+var Seek = {
+  dir: 0, n: 0, total: 0, at: 0, timer: 0,
+  tap: function (dir) {
+    var now = performance.now();
+    if (dir !== Seek.dir || now - Seek.at > 450) { Seek.dir = dir; Seek.n = 0; Seek.total = 0; }
+    Seek.at = now; Seek.n++;
+    var step = Seek.n === 1 ? 3 : Seek.n === 2 ? 7 : Seek.n <= 5 ? 10 : 60;
+    Seek.total += step;
+    Listen.skip(dir * step);
+    clearTimeout(Seek.timer);
+    Seek.timer = setTimeout(function () { Seek.dir = 0; Seek.total = 0; Deck.render(true); }, 1000);
+    Deck.render(true);
+  },
+  label: function (dir) {
+    if (Seek.dir !== dir || !Seek.total) return '3';
+    var t = Seek.total;
+    return t < 60 ? String(t) : Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2);
+  },
+  icon: function (dir) {
+    var arc = dir < 0
+      ? '<path d="M9 12.5A10 10 0 1 1 6.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 7.5v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<path d="M23 12.5A10 10 0 1 0 25.5 19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M23 7.5v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>';
+    return '<span class="skip"><svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">' + arc + '</svg><b class="n15 num">' + Seek.label(dir) + '</b></span>';
+  }
+};
 var PICKERS = [
   { k: 'speed', label: 'Speed', values: SPEEDS_Q, fmt: fmtX },
   { k: 'pause', label: 'Pause', values: PAUSES, fmt: fmtX },
   { k: 'repeat', label: 'Repeat', values: REPEATS, fmt: function (v) { return v === 0 ? '∞' : String(v); } },
-  { k: 'mode', label: 'Block', values: MODES, fmt: function (v) { return MODE_LABEL[v]; } },
-  /* only there while Block is Words: how many words each block holds */
-  { k: 'words', label: 'Words', values: WORD_COUNTS, fmt: String, when: function () { return S.memo.mode === 'words'; } }
+  { k: 'mode', label: 'Block', values: MODES, fmt: function (v) { return MODE_LABEL[v]; } }
 ];
 var Deck = {
   open: false, textKey: null, lit: null, openPicker: null, pickKey: null, lastTile: null, homeAt: 0, el: {},
@@ -1677,7 +1711,7 @@ var Deck = {
     var E = Deck.el;
     ['mini', 'miniTitle', 'miniSub', 'miniFill', 'miniPlay', 'miniExpand', 'player', 'grab',
       'lv', 'lvTitle', 'lvSub', 'lvTxt', 'lvText', 'lvInfo', 'lvProg', 'lvFill', 'lvT0', 'lvT1', 'lvPrev', 'lvPlay', 'lvNext', 'lvOptions', 'lvDl',
-      'mv', 'mvTitle', 'mvSub', 'mvTxt', 'mvText', 'mvStatus', 'mvPrev', 'mvPlay', 'mvNext', 'ringFill', 'mvGlyph', 'mvOptions', 'mvPickers', 'mvPos', 'mvPosVal', 'mvOk'
+      'mv', 'mvTitle', 'mvSub', 'mvTxt', 'mvText', 'mvStatus', 'mvPrev', 'mvPlay', 'mvNext', 'ringFill', 'mvGlyph', 'mvOptions', 'mvPickers', 'mvPos', 'mvPosVal', 'mvOk', 'plList'
     ].forEach(function (id) { E[id] = $(id); });
     setHTML(qs('.c', E.mvPos), ICON.chev);
     on(E.miniExpand, 'click', function () { Deck.show(); });
@@ -1706,6 +1740,21 @@ var Deck = {
       Deck.pickKey = null; Deck.render(true);
     });
     on(E.mvPos, 'click', function () { showPositionPicker(); });
+    /* Select: tap the first word, then the last - in either order, across ayat if he likes */
+    on(E.mvText, 'click', function (e) {
+      if (S.memo.mode !== 'select' || Active !== Memo || !Memo.block) return;
+      var w = e.target.closest ? e.target.closest('.w[data-a]') : null; if (!w) return;
+      var a = +w.getAttribute('data-a'), p = +w.getAttribute('data-p');
+      if (!Deck.pick) { Deck.pick = { a: a, p: p }; Deck.textKey = null; Deck.render(true); return; }
+      var s0 = Deck.pick; Deck.pick = null; Deck.textKey = null;
+      Memo.setSelection(s0.a, s0.p, a, p);
+    });
+    /* back to the list this came from, without stopping what plays */
+    on(E.plList, 'click', function () {
+      var t = Deck.listTile; if (!t || !Lists[t]) return;
+      Deck.hide(); Lists[t]();
+    });
+    setHTML(E.plList, ICON.list);
     setHTML(E.mvOk, ICON.check);
     on(E.mvOk, 'click', function () { Memo.markMemorised(); });
     /* grabber: a tap or a pull of more than 70px collapses the player back to the mini bar */
@@ -1732,7 +1781,7 @@ var Deck = {
     on(E.lvProg, 'pointercancel', function () { sc = false; });
   },
   show: function () { Deck.open = true; Deck.el.player.classList.add('show'); Deck.render(true); },
-  hide: function () { Deck.open = false; Deck.el.player.classList.remove('show'); },
+  hide: function () { Deck.open = false; Deck.pick = null; Deck.textKey = null; Deck.el.player.classList.remove('show'); },
   toggle: function () {
     if (Active) return Active.toggle();
     if (!S.now || !D.meta) return;
@@ -1780,6 +1829,8 @@ var Deck = {
     if (!Deck.open) return;
     var memo = info.ctrl === 'memo';
     E.lv.classList.toggle('hide', memo); E.mv.classList.toggle('hide', !memo);
+    Deck.listTile = !memo && info.tile && Lists[info.tile] ? info.tile : null;
+    E.plList.classList.toggle('hide', !Deck.listTile);
     if (memo) Deck.renderMemo(info, busy); else Deck.renderListen(info, busy);
   },
   renderListen: function (info, busy) {
@@ -1812,10 +1863,10 @@ var Deck = {
     setText(E.lvT0, fmtTime(info.t0));
     setText(E.lvT1, info.t1 ? '−' + fmtTime(Math.max(0, info.t1 - info.t0)) : '');
     setHTML(E.lvPlay, busy ? ICON.pause : ICON.play);
-    setHTML(E.lvPrev, info.quran ? ICON.prev : ICON.back15);
-    setHTML(E.lvNext, info.quran ? ICON.next : ICON.fwd15);
-    E.lvPrev.setAttribute('aria-label', info.quran ? 'Previous ayah' : 'Back 15 seconds');
-    E.lvNext.setAttribute('aria-label', info.quran ? 'Next ayah' : 'Forward 15 seconds');
+    setHTML(E.lvPrev, info.quran ? ICON.prev : Seek.icon(-1));
+    setHTML(E.lvNext, info.quran ? ICON.next : Seek.icon(1));
+    E.lvPrev.setAttribute('aria-label', info.quran ? 'Previous ayah' : 'Back 3 seconds, double tap 10');
+    E.lvNext.setAttribute('aria-label', info.quran ? 'Next ayah' : 'Forward 3 seconds, double tap 10');
     var sp = '';
     (info.speeds || SPEEDS_Q).forEach(function (v) { sp += '<button data-v="' + v + '"' + (v === info.speed ? ' class="on"' : '') + '>' + fmtX(v) + '</button>'; });
     setHTML(E.lvOptions, sp);
@@ -1831,12 +1882,16 @@ var Deck = {
     setText(E.mvTitle, info.title);
     setText(E.mvSub, info.sub || '');
     if (b) {
-      var key = 'M' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
+      var sel = b.kind === 'sel', pk = Deck.pick;
+      var key = (sel ? 'S' + (pk ? pk.a + '.' + pk.p : '') : 'M') + ':' + b.s + ':' + b.a1 + ':' + b.a2 + ':' + b.from + ':' + b.to;
       if (Deck.textKey !== key) {
         Deck.textKey = key; Deck.lit = null;
-        var r = wordsHTML(b);
-        E.mvText.className = 'in' + (r.n > 34 ? ' s2' : '');
+        var r = sel ? selectHTML(b, pk) : wordsHTML(b);
+        E.mvText.className = 'in' + (r.n > 34 ? ' s2' : '') + (sel ? ' pickable' : '');
         E.mvText.innerHTML = r.html; E.mvTxt.scrollTop = 0;
+        /* the context ayah before can push the chosen words below the fold: bring them up */
+        var first = sel ? qs('.w:not(.out)', E.mvText) : null;
+        if (first) E.mvTxt.scrollTop = Math.max(0, first.offsetTop - E.mvText.offsetTop - 12);
       }
       Deck.light(E.mvText, E.mvTxt, info.wordAt);
     } else if (info.resting) {
@@ -2425,6 +2480,7 @@ function resumeCollection(kind) {
 }
 var Lists = {
   memorize: function () { showPositionPicker(); },
+  revise: function () { showRevision(); },
   husary: function () { showSurahPicker(); },
   reciters: function () { showReciters(); },
   sharh: function () { showCollection('sharh'); },

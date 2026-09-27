@@ -1,30 +1,9 @@
 {
   "title": "Hadith",
-  "note": "SAMPLE. Replace with the owner's files.",
+  "note": "Live, like the Sunnah channel from Madinah: hadith read continuously, 24 hours a day. Streams from mp3quran.net (128 kbps MP3, CORS *). A live stream has no position to remember; the app remembers which station was playing.",
   "items": [
-    {
-      "id": "hadith-1",
-      "title": "Riyad as-Salihin 1 - Sincerity",
-      "url": null,
-      "duration": null
-    },
-    {
-      "id": "hadith-2",
-      "title": "Riyad as-Salihin 2 - Repentance",
-      "url": null,
-      "duration": null
-    },
-    {
-      "id": "hadith-3",
-      "title": "Riyad as-Salihin 3 - Patience",
-      "url": null,
-      "duration": null
-    },
-    {
-      "id": "hadith-4",
-      "title": "Forty Hadith of an-Nawawi 1-10",
-      "url": null,
-      "duration": null
-    }
+    { "id": "bukhari", "title": "Sahih al-Bukhari", "arTitle": "صحيح البخاري", "url": "https://backup.qurango.net/radio/saheh-bokharee", "live": true },
+    { "id": "muslim", "title": "Sahih Muslim", "arTitle": "صحيح مسلم", "url": "https://backup.qurango.net/radio/saheh-muslim", "live": true },
+    { "id": "riyad", "title": "Riyad as-Salihin", "arTitle": "رياض الصالحين", "url": "https://backup.qurango.net/radio/riyad", "live": true }
   ]
 }

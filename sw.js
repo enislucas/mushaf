@@ -1,7 +1,7 @@
 /* Mushaf service worker: precached app shell + downloaded audio from Cache Storage,
    answered with proper 206 byte ranges (iOS Safari refuses a 200 to a Range request). */
 'use strict';
-var SHELL = 'mushaf-shell-v5';
+var SHELL = 'mushaf-shell-v6';
 var AUDIO = 'mushaf-audio-v1';                 /* must match AUDIO_CACHE in index.html */
 var SHELL_FILES = [
   './', './index.html', './manifest.webmanifest',
